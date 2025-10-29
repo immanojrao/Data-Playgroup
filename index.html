@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Data Viewer with AG Grid</title>
+    
+    <!-- AG Grid CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.0.0/styles/ag-grid.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.0.0/styles/ag-theme-alpine.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #555;
+        }
+        
+        .column-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .column-checkbox {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .column-checkbox:hover {
+            background: #e0e0e0;
+        }
+        
+        .column-checkbox input {
+            margin-right: 8px;
+            cursor: pointer;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        button:hover {
+            background: #0056b3;
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        #myGrid {
+            height: 500px;
+            width: 100%;
+            margin-bottom: 30px;
+        }
+        
+        .chart-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        label {
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #555;
+        }
+        
+        select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        #chartCanvas {
+            max-height: 400px;
+        }
+        
+        .info-box {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            color: #1976d2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Excel Data Analyzer</h1>
+        
+        <!-- Step 1: Column Selection -->
+        <div class="section">
+            <div class="section-title">Step 1: Select Columns to Display</div>
+            <div class="column-selector" id="columnSelector">
+                {% for column in columns %}
+                <label class="column-checkbox">
+                    <input type="checkbox" value="{{ column }}" checked>
+                    <span>{{ column }}</span>
+                </label>
+                {% endfor %}
+            </div>
+            <div class="button-group">
+                <button onclick="loadData()">Load Selected Columns</button>
+                <button onclick="selectAll()">Select All</button>
+                <button onclick="deselectAll()">Deselect All</button>
+            </div>
+        </div>
+        
+        <!-- Step 2: Data Grid -->
+        <div class="section">
+            <div class="section-title">Step 2: View and Filter Data (Use AG Grid filters)</div>
+            <div id="myGrid" class="ag-theme-alpine"></div>
+        </div>
+        
+        <!-- Step 3: Chart Creation -->
+        <div class="section">
+            <div class="section-title">Step 3: Create Chart from Filtered Data</div>
+            <div class="info-box">
+                Filter the data in the table above, then select columns and chart type below to visualize.
+            </div>
+            
+            <div class="chart-controls">
+                <div class="form-group">
+                    <label for="chartType">Chart Type:</label>
+                    <select id="chartType">
+                        <option value="bar">Bar Chart</option>
+                        <option value="line">Line Chart</option>
+                        <option value="pie">Pie Chart</option>
+                        <option value="scatter">Scatter Plot</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="xColumn">X-Axis Column:</label>
+                    <select id="xColumn"></select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="yColumn">Y-Axis Column:</label>
+                    <select id="yColumn"></select>
+                </div>
+            </div>
+            
+            <button onclick="createChart()" style="margin-bottom: 20px;">Generate Chart</button>
+            
+            <canvas id="chartCanvas"></canvas>
+        </div>
+    </div>
+
+    <!-- AG Grid JS -->
+    <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@31.0.0/dist/ag-grid-community.min.js"></script>
+    
+    <script>
+        let gridApi;
+        let currentChart = null;
+        let currentColumns = [];
+        
+        // Initialize AG Grid
+        const gridOptions = {
+            defaultColDef: {
+                sortable: true,
+                filter: true,
+                resizable: true,
+                floatingFilter: true,
+            },
+            pagination: true,
+            paginationPageSize: 20,
+            rowSelection: 'multiple',
+            onFilterChanged: updateChartColumnOptions
+        };
+        
+        // Load data with selected columns
+        async function loadData() {
+            const checkboxes = document.querySelectorAll('#columnSelector input[type="checkbox"]:checked');
+            const selectedColumns = Array.from(checkboxes).map(cb => cb.value);
+            
+            if (selectedColumns.length === 0) {
+                alert('Please select at least one column');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/get_data', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({columns: selectedColumns})
+                });
+                
+                const result = await response.json();
+                currentColumns = result.columns;
+                
+                // Create column definitions
+                const columnDefs = result.columns.map(col => ({
+                    field: col,
+                    headerName: col
+                }));
+                
+                // Initialize or update grid
+                const gridDiv = document.querySelector('#myGrid');
+                if (!gridApi) {
+                    gridApi = agGrid.createGrid(gridDiv, gridOptions);
+                }
+                
+                gridApi.setGridOption('columnDefs', columnDefs);
+                gridApi.setGridOption('rowData', result.data);
+                
+                // Update chart column dropdowns
+                updateChartColumnOptions();
+                
+            } catch (error) {
+                console.error('Error loading data:', error);
+                alert('Error loading data');
+            }
+        }
+        
+        // Update chart column dropdowns
+        function updateChartColumnOptions() {
+            const xSelect = document.getElementById('xColumn');
+            const ySelect = document.getElementById('yColumn');
+            
+            xSelect.innerHTML = '';
+            ySelect.innerHTML = '';
+            
+            currentColumns.forEach(col => {
+                xSelect.add(new Option(col, col));
+                ySelect.add(new Option(col, col));
+            });
+        }
+        
+        // Create chart from filtered data
+        async function createChart() {
+            const chartType = document.getElementById('chartType').value;
+            const xColumn = document.getElementById('xColumn').value;
+            const yColumn = document.getElementById('yColumn').value;
+            
+            if (!xColumn || !yColumn) {
+                alert('Please select X and Y columns');
+                return;
+            }
+            
+            // Get filtered data from AG Grid
+            const filteredData = [];
+            gridApi.forEachNodeAfterFilter(node => {
+                filteredData.push(node.data);
+            });
+            
+            if (filteredData.length === 0) {
+                alert('No data available after filtering');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/get_chart_data', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        data: filteredData,
+                        xColumn: xColumn,
+                        yColumn: yColumn
+                    })
+                });
+                
+                const chartData = await response.json();
+                
+                // Destroy existing chart
+                if (currentChart) {
+                    currentChart.destroy();
+                }
+                
+                // Create new chart
+                const ctx = document.getElementById('chartCanvas').getContext('2d');
+                currentChart = new Chart(ctx, {
+                    type: chartType,
+                    data: {
+                        labels: chartData.xValues,
+                        datasets: [{
+                            label: yColumn,
+                            data: chartData.yValues,
+                            backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: `${yColumn} vs ${xColumn}`
+                            },
+                            legend: {
+                                display: true
+                            }
+                        },
+                        scales: chartType !== 'pie' ? {
+                            y: {
+                                beginAtZero: true
+                            }
+                        } : {}
+                    }
+                });
+                
+            } catch (error) {
+                console.error('Error creating chart:', error);
+                alert('Error creating chart');
+            }
+        }
+        
+        // Column selection helpers
+        function selectAll() {
+            document.querySelectorAll('#columnSelector input[type="checkbox"]').forEach(cb => {
+                cb.checked = true;
+            });
+        }
+        
+        function deselectAll() {
+            document.querySelectorAll('#columnSelector input[type="checkbox"]').forEach(cb => {
+                cb.checked = false;
+            });
+        }
+        
+        // Load data on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadData();
+        });
+    </script>
+</body>
+</html>
