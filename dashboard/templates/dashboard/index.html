@@ -1,0 +1,876 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Data Analyzer with AG Grid & Django</title>
+
+    <!-- AG Grid CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.0.0/styles/ag-grid.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.0.0/styles/ag-theme-alpine.css">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .section {
+            margin-bottom: 35px;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #444;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .step-badge {
+            background: #667eea;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .column-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .column-checkbox {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .column-checkbox:hover {
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+        }
+
+        .column-checkbox input {
+            margin-right: 8px;
+            cursor: pointer;
+        }
+
+        .column-checkbox input:checked + span {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        /* Slicers Styling */
+        .slicers-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .slicer {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid #e0e0e0;
+        }
+
+        .slicer-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #444;
+            font-size: 14px;
+        }
+
+        .slicer-options {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 8px;
+            background: #fafafa;
+        }
+
+        .slicer-option {
+            display: flex;
+            align-items: center;
+            padding: 6px 8px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .slicer-option:hover {
+            background: #e8e8e8;
+        }
+
+        .slicer-option input {
+            margin-right: 8px;
+        }
+
+        .slicer-option label {
+            cursor: pointer;
+            font-size: 13px;
+            margin: 0;
+            flex: 1;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        button.secondary {
+            background: #6c757d;
+        }
+
+        button.secondary:hover {
+            background: #5a6268;
+        }
+
+        #myGrid {
+            height: 500px;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .chart-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+            font-size: 13px;
+        }
+
+        select {
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        /* Scrollable Chart Container */
+        .chart-wrapper {
+            overflow-x: auto;
+            overflow-y: hidden;
+            margin-bottom: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            background: white;
+        }
+
+        .chart-container {
+            min-width: 100%;
+            position: relative;
+        }
+
+        #chartCanvas {
+            display: block;
+            max-height: 500px;
+        }
+
+        .info-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            color: white;
+            font-weight: 500;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .checkbox-label input {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Excel Data Analyzer with Django + AG Grid</h1>
+        <p class="subtitle">Advanced data visualization with column selection, multiple slicers, and dynamic charting</p>
+
+        <!-- Step 1: Column Selection -->
+        <div class="section">
+            <div class="section-title">
+                <span class="step-badge">1</span>
+                Select Columns to Display
+            </div>
+            <div class="column-selector" id="columnSelector">
+                {% for column in columns %}
+                <label class="column-checkbox">
+                    <input type="checkbox" value="{{ column }}" checked>
+                    <span>{{ column }}</span>
+                </label>
+                {% endfor %}
+            </div>
+            <div class="button-group">
+                <button onclick="loadData()">Load Selected Columns</button>
+                <button class="secondary" onclick="selectAll()">Select All</button>
+                <button class="secondary" onclick="deselectAll()">Deselect All</button>
+            </div>
+        </div>
+
+        <!-- Step 1.5: Slicers for Advanced Filtering -->
+        <div class="section">
+            <div class="section-title">
+                <span class="step-badge">1.5</span>
+                Advanced Filters (Slicers)
+            </div>
+            <div class="info-box">
+                Select specific values from each column to filter your data. Multiple selections within a slicer are combined with OR logic.
+            </div>
+            <div class="button-group">
+                <button onclick="initializeSlicers()">Initialize Slicers</button>
+                <button class="secondary" onclick="applySlicerFilters()">Apply Filters</button>
+                <button class="secondary" onclick="clearAllSlicers()">Clear All Filters</button>
+            </div>
+            <div id="slicersContainer" class="slicers-container">
+                <!-- Slicers will be dynamically generated here -->
+            </div>
+        </div>
+
+        <!-- Step 2: Data Grid -->
+        <div class="section">
+            <div class="section-title">
+                <span class="step-badge">2</span>
+                View and Filter Data
+            </div>
+            <div id="myGrid" class="ag-theme-alpine"></div>
+        </div>
+
+        <!-- Step 3: Chart Creation -->
+        <div class="section">
+            <div class="section-title">
+                <span class="step-badge">3</span>
+                Create Dynamic Charts from Filtered Data
+            </div>
+            <div class="info-box">
+                Charts automatically skip null and zero values. For large datasets, charts become scrollable horizontally to maintain bar width.
+            </div>
+
+            <div class="chart-controls">
+                <div class="form-group">
+                    <label for="chartType">Chart Type:</label>
+                    <select id="chartType" onchange="handleChartTypeChange()">
+                        <option value="bar">Bar Chart</option>
+                        <option value="line">Line Chart</option>
+                        <option value="pie">Pie Chart</option>
+                        <option value="scatter">Scatter Plot</option>
+                        <option value="doughnut">Doughnut Chart</option>
+                        <option value="area">Area Chart</option>
+                        <option value="horizontalBar">Horizontal Bar</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="xColumn">X-Axis Column:</label>
+                    <select id="xColumn"></select>
+                </div>
+
+                <div class="form-group">
+                    <label for="yColumn">Y-Axis Column:</label>
+                    <select id="yColumn"></select>
+                </div>
+
+                <div class="form-group">
+                    <label for="aggregation">Aggregation Method:</label>
+                    <select id="aggregation">
+                        <option value="sum">Sum</option>
+                        <option value="average">Average</option>
+                        <option value="count">Count</option>
+                        <option value="min">Minimum</option>
+                        <option value="max">Maximum</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="groupData" checked>
+                        Group by X-Axis
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="skipNullZero" checked>
+                        Skip Null & Zero Values
+                    </label>
+                </div>
+            </div>
+
+            <button onclick="createChart()" style="margin-bottom: 20px;">Generate Chart</button>
+
+            <div class="chart-wrapper" id="chartWrapper">
+                <div class="chart-container" id="chartContainer">
+                    <canvas id="chartCanvas"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AG Grid JS -->
+    <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@31.0.0/dist/ag-grid-community.min.js"></script>
+
+    <script>
+        let gridApi;
+        let currentChart = null;
+        let currentColumns = [];
+        let slicersData = {};
+
+        // Initialize AG Grid
+        const gridOptions = {
+            defaultColDef: {
+                sortable: true,
+                filter: true,
+                resizable: true,
+                floatingFilter: true,
+            },
+            pagination: true,
+            paginationPageSize: 20,
+            rowSelection: 'multiple',
+            onFilterChanged: updateChartColumnOptions
+        };
+
+        // Load data with selected columns
+        async function loadData() {
+            const checkboxes = document.querySelectorAll('#columnSelector input[type="checkbox"]:checked');
+            const selectedColumns = Array.from(checkboxes).map(cb => cb.value);
+
+            if (selectedColumns.length === 0) {
+                alert('Please select at least one column');
+                return;
+            }
+
+            try {
+                const response = await fetch('/get_data', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({columns: selectedColumns})
+                });
+
+                const result = await response.json();
+                currentColumns = result.columns;
+
+                // Create column definitions
+                const columnDefs = result.columns.map(col => ({
+                    field: col,
+                    headerName: col
+                }));
+
+                // Initialize or update grid
+                const gridDiv = document.querySelector('#myGrid');
+                if (!gridApi) {
+                    gridApi = agGrid.createGrid(gridDiv, gridOptions);
+                }
+
+                gridApi.setGridOption('columnDefs', columnDefs);
+                gridApi.setGridOption('rowData', result.data);
+
+                // Update chart column dropdowns
+                updateChartColumnOptions();
+
+            } catch (error) {
+                console.error('Error loading data:', error);
+                alert('Error loading data');
+            }
+        }
+
+        // Initialize slicers with unique values from selected columns
+        async function initializeSlicers() {
+            const checkboxes = document.querySelectorAll('#columnSelector input[type="checkbox"]:checked');
+            const selectedColumns = Array.from(checkboxes).map(cb => cb.value);
+
+            if (selectedColumns.length === 0) {
+                alert('Please select columns first');
+                return;
+            }
+
+            const slicersContainer = document.getElementById('slicersContainer');
+            slicersContainer.innerHTML = '<p style="padding: 20px; text-align: center;">Loading slicers...</p>';
+
+            slicersData = {};
+
+            // Create slicers for the first 5 columns (or all if less than 5)
+            const columnsForSlicers = selectedColumns.slice(0, Math.max(5, selectedColumns.length));
+
+            try {
+                // Fetch unique values for each column
+                for (const column of columnsForSlicers) {
+                    const response = await fetch('/get_unique_values', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({column: column})
+                    });
+
+                    const result = await response.json();
+                    slicersData[column] = result.uniqueValues;
+                }
+
+                // Render slicers
+                renderSlicers();
+
+            } catch (error) {
+                console.error('Error initializing slicers:', error);
+                alert('Error loading slicer data');
+            }
+        }
+
+        // Render slicers UI
+        function renderSlicers() {
+            const slicersContainer = document.getElementById('slicersContainer');
+            slicersContainer.innerHTML = '';
+
+            Object.keys(slicersData).forEach(column => {
+                const slicerDiv = document.createElement('div');
+                slicerDiv.className = 'slicer';
+
+                const title = document.createElement('div');
+                title.className = 'slicer-title';
+                title.textContent = column;
+                slicerDiv.appendChild(title);
+
+                const optionsDiv = document.createElement('div');
+                optionsDiv.className = 'slicer-options';
+
+                slicersData[column].forEach(value => {
+                    const optionDiv = document.createElement('div');
+                    optionDiv.className = 'slicer-option';
+
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.value = value;
+                    checkbox.id = `slicer-${column}-${value}`;
+                    checkbox.dataset.column = column;
+
+                    const label = document.createElement('label');
+                    label.htmlFor = checkbox.id;
+                    label.textContent = value;
+
+                    optionDiv.appendChild(checkbox);
+                    optionDiv.appendChild(label);
+                    optionsDiv.appendChild(optionDiv);
+                });
+
+                slicerDiv.appendChild(optionsDiv);
+                slicersContainer.appendChild(slicerDiv);
+            });
+        }
+
+        // Apply slicer filters to AG Grid
+        function applySlicerFilters() {
+            if (!gridApi) {
+                alert('Please load data first');
+                return;
+            }
+
+            // Get all checked slicer values grouped by column
+            const filtersByColumn = {};
+
+            document.querySelectorAll('.slicer-option input:checked').forEach(checkbox => {
+                const column = checkbox.dataset.column;
+                const value = checkbox.value;
+
+                if (!filtersByColumn[column]) {
+                    filtersByColumn[column] = [];
+                }
+                filtersByColumn[column].push(value);
+            });
+
+            // Apply filters to AG Grid
+            Object.keys(slicersData).forEach(column => {
+                const filterInstance = gridApi.getColumnFilterInstance(column);
+
+                if (filtersByColumn[column] && filtersByColumn[column].length > 0) {
+                    // Set filter to include only selected values
+                    filterInstance.setModel({
+                        filterType: 'set',
+                        values: filtersByColumn[column]
+                    });
+                } else {
+                    // Clear filter for this column
+                    filterInstance.setModel(null);
+                }
+            });
+
+            gridApi.onFilterChanged();
+        }
+
+        // Clear all slicer filters
+        function clearAllSlicers() {
+            document.querySelectorAll('.slicer-option input').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+
+            if (gridApi) {
+                gridApi.setFilterModel(null);
+            }
+        }
+
+        // Update chart column dropdowns
+        function updateChartColumnOptions() {
+            const xSelect = document.getElementById('xColumn');
+            const ySelect = document.getElementById('yColumn');
+
+            xSelect.innerHTML = '';
+            ySelect.innerHTML = '';
+
+            currentColumns.forEach(col => {
+                xSelect.add(new Option(col, col));
+                ySelect.add(new Option(col, col));
+            });
+        }
+
+        // Handle chart type changes
+        function handleChartTypeChange() {
+            // Can add specific logic for different chart types if needed
+        }
+
+        // Create chart from filtered data
+        async function createChart() {
+            const chartType = document.getElementById('chartType').value;
+            const xColumn = document.getElementById('xColumn').value;
+            const yColumn = document.getElementById('yColumn').value;
+            const aggregation = document.getElementById('aggregation').value;
+            const shouldGroup = document.getElementById('groupData').checked;
+            const skipNullZero = document.getElementById('skipNullZero').checked;
+
+            if (!xColumn || !yColumn) {
+                alert('Please select X and Y columns');
+                return;
+            }
+
+            // Get filtered data from AG Grid
+            const filteredData = [];
+            gridApi.forEachNodeAfterFilter(node => {
+                filteredData.push(node.data);
+            });
+
+            if (filteredData.length === 0) {
+                alert('No data available after filtering');
+                return;
+            }
+
+            // Process data
+            let xValues, yValues;
+
+            if (shouldGroup) {
+                const aggregated = aggregateData(filteredData, xColumn, yColumn, aggregation, skipNullZero);
+                xValues = aggregated.x;
+                yValues = aggregated.y;
+            } else {
+                const processed = processData(filteredData, xColumn, yColumn, skipNullZero);
+                xValues = processed.x;
+                yValues = processed.y;
+            }
+
+            // Destroy existing chart
+            if (currentChart) {
+                currentChart.destroy();
+            }
+
+            // Calculate dynamic width for scrollable chart
+            const minBarWidth = 40; // minimum width per bar in pixels
+            const calculatedWidth = Math.max(800, xValues.length * minBarWidth);
+
+            // Set canvas width for horizontal scrolling
+            const chartContainer = document.getElementById('chartContainer');
+            const canvas = document.getElementById('chartCanvas');
+
+            if (chartType === 'bar' || chartType === 'horizontalBar') {
+                chartContainer.style.width = calculatedWidth + 'px';
+                canvas.width = calculatedWidth;
+            } else {
+                chartContainer.style.width = '100%';
+                canvas.width = 800;
+            }
+
+            const ctx = canvas.getContext('2d');
+
+            // Create chart
+            createBasicChart(ctx, chartType, xValues, yValues, xColumn, yColumn);
+        }
+
+        // Process data without grouping
+        function processData(data, xCol, yCol, skipNullZero) {
+            const xValues = [];
+            const yValues = [];
+
+            data.forEach(row => {
+                const xVal = row[xCol];
+                const yVal = parseFloat(row[yCol]);
+
+                // Skip null/zero values if option is enabled
+                if (skipNullZero && (yVal === null || yVal === undefined || yVal === 0 || isNaN(yVal))) {
+                    return;
+                }
+
+                xValues.push(xVal);
+                yValues.push(yVal);
+            });
+
+            return { x: xValues, y: yValues };
+        }
+
+        // Aggregate data by X column
+        function aggregateData(data, xCol, yCol, aggMethod, skipNullZero) {
+            const grouped = {};
+
+            // Group data by X column
+            data.forEach(row => {
+                const key = row[xCol];
+                const yVal = parseFloat(row[yCol]);
+
+                // Skip null/zero values if option is enabled (before aggregation)
+                if (skipNullZero && (yVal === null || yVal === undefined || yVal === 0 || isNaN(yVal))) {
+                    return;
+                }
+
+                if (!grouped[key]) {
+                    grouped[key] = [];
+                }
+
+                if (!isNaN(yVal)) {
+                    grouped[key].push(yVal);
+                }
+            });
+
+            // Apply aggregation function
+            const result = { x: [], y: [] };
+
+            Object.keys(grouped).forEach(key => {
+                // Skip if no valid values after filtering
+                if (grouped[key].length === 0) {
+                    return;
+                }
+
+                const aggregatedValue = applyAggregation(grouped[key], aggMethod);
+
+                // Skip if aggregated value is zero (when skipNullZero is enabled)
+                if (skipNullZero && aggregatedValue === 0) {
+                    return;
+                }
+
+                result.x.push(key);
+                result.y.push(aggregatedValue);
+            });
+
+            return result;
+        }
+
+        // Apply aggregation method to array
+        function applyAggregation(arr, method) {
+            if (arr.length === 0) return 0;
+
+            switch(method) {
+                case 'sum':
+                    return arr.reduce((a, b) => a + b, 0);
+                case 'average':
+                    return arr.reduce((a, b) => a + b, 0) / arr.length;
+                case 'count':
+                    return arr.length;
+                case 'min':
+                    return Math.min(...arr);
+                case 'max':
+                    return Math.max(...arr);
+                default:
+                    return arr.reduce((a, b) => a + b, 0);
+            }
+        }
+
+        // Create basic chart
+        function createBasicChart(ctx, type, xValues, yValues, xColumn, yColumn) {
+            const isHorizontal = type === 'horizontalBar';
+            const actualType = isHorizontal ? 'bar' : type;
+
+            currentChart = new Chart(ctx, {
+                type: actualType,
+                data: {
+                    labels: xValues,
+                    datasets: [{
+                        label: yColumn,
+                        data: yValues,
+                        backgroundColor: getColors(xValues.length, 0.6),
+                        borderColor: getColors(xValues.length, 1),
+                        borderWidth: 2,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    indexAxis: isHorizontal ? 'y' : 'x',
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `${yColumn} by ${xColumn}`,
+                            font: { size: 18, weight: 'bold' }
+                        },
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        zoom: {
+                            zoom: {
+                                wheel: { enabled: true },
+                                pinch: { enabled: true },
+                                mode: 'x',
+                            },
+                            pan: {
+                                enabled: true,
+                                mode: 'x',
+                            }
+                        }
+                    },
+                    scales: type !== 'pie' && type !== 'doughnut' ? {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: isHorizontal ? xColumn : yColumn }
+                        },
+                        x: {
+                            title: { display: true, text: isHorizontal ? yColumn : xColumn }
+                        }
+                    } : {}
+                }
+            });
+        }
+
+        // Helper: Generate color palette
+        function getColors(count, alpha) {
+            const baseColors = [
+                [102, 126, 234], [118, 75, 162], [255, 99, 132],
+                [54, 162, 235], [255, 206, 86], [75, 192, 192],
+                [153, 102, 255], [255, 159, 64], [199, 199, 199],
+                [83, 102, 255], [255, 99, 255], [99, 255, 132]
+            ];
+
+            return Array(count).fill(0).map((_, i) => {
+                const color = baseColors[i % baseColors.length];
+                return `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${alpha})`;
+            });
+        }
+
+        // Column selection helpers
+        function selectAll() {
+            document.querySelectorAll('#columnSelector input[type="checkbox"]').forEach(cb => {
+                cb.checked = true;
+            });
+        }
+
+        function deselectAll() {
+            document.querySelectorAll('#columnSelector input[type="checkbox"]').forEach(cb => {
+                cb.checked = false;
+            });
+        }
+
+        // Load data on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadData();
+        });
+    </script>
+</body>
+</html>
