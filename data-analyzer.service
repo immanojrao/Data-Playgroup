@@ -1,0 +1,24 @@
+[Unit]
+Description=Data Analyzer Flask Application
+After=network.target
+
+[Service]
+Type=notify
+# Change this to your actual user
+User=your_username
+# Change this to your actual group
+Group=your_username
+# Change this to your project directory
+WorkingDirectory=/path/to/Data-Playgroup
+# Change this to your virtual environment python (or system python)
+Environment="PATH=/path/to/Data-Playgroup/venv/bin"
+# Load environment variables
+EnvironmentFile=/path/to/Data-Playgroup/.env
+# Run gunicorn
+ExecStart=/path/to/Data-Playgroup/venv/bin/gunicorn -c gunicorn_config.py app:app
+# Restart on failure
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

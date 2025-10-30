@@ -290,8 +290,16 @@
 </head>
 <body>
     <div class="container">
-        <h1>📊 Excel Data Analyzer with Flask + AG Grid</h1>
-        <p class="subtitle">Simple and powerful data visualization with column selection, multiple slicers, and dynamic charting</p>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <div>
+                <h1 style="margin-bottom: 5px;">📊 Excel Data Analyzer with Flask + AG Grid</h1>
+                <p class="subtitle">Simple and powerful data visualization with column selection, multiple slicers, and dynamic charting</p>
+            </div>
+            <div style="text-align: right;">
+                <p style="color: #666; margin-bottom: 8px;">Welcome, <strong>{{ username }}</strong></p>
+                <a href="/logout" style="padding: 8px 16px; background: #6c757d; color: white; text-decoration: none; border-radius: 4px; font-size: 14px; display: inline-block;">Logout</a>
+            </div>
+        </div>
 
         <!-- Step 1: Column Selection -->
         <div class="section">
