@@ -1,283 +1,228 @@
-# Excel Data Analyzer with Django + AG Grid
+# Excel Data Analyzer with Flask + AG Grid
 
-A powerful Django-based web application for analyzing Excel data with AG Grid tables, advanced filtering through slicers, and dynamic chart visualization.
+A simple and powerful Flask web application for analyzing Excel data with interactive tables and dynamic charts.
 
-## Features
+## ✨ Key Features
 
-### 1. **Column Selection**
-- Select which columns to display in the data table
-- Quick "Select All" and "Deselect All" options
-- Real-time updates to the AG Grid table
+### 📊 **5+ Data Slicers**
+Filter your data with multiple slicers showing unique values from each column. Select specific values to instantly filter the data table.
 
-### 2. **Advanced Filtering with Slicers (5+ Slicers)**
-- Dynamic slicers generated from your Excel columns
-- Each slicer shows unique values from the respective column
-- Multiple selections within a slicer (OR logic)
-- Easy "Apply Filters" and "Clear All Filters" buttons
-- Integrates seamlessly with AG Grid filtering
+### 📈 **Scrollable Charts**
+When you have many data points, charts automatically become horizontally scrollable instead of squishing the bars together - keeping everything readable!
 
-### 3. **Interactive AG Grid Table**
-- Sortable columns
-- Built-in column filters
-- Floating filters for quick filtering
-- Pagination support (20 rows per page)
-- Resizable columns
+### 🎯 **Skip Null & Zero Values**
+Automatically remove null and zero values from your charts to reduce clutter and focus on meaningful data.
 
-### 4. **Dynamic Chart Visualization**
+### 📋 **Other Features**
+- Select which columns to display
+- Interactive AG Grid table with sorting and filtering
+- 7 chart types: Bar, Line, Pie, Scatter, Doughnut, Area, Horizontal Bar
+- Data aggregation: Sum, Average, Count, Min, Max
+- Beautiful modern UI with purple gradient theme
 
-#### Chart Types:
-- Bar Chart
-- Line Chart
-- Pie Chart
-- Scatter Plot
-- Doughnut Chart
-- Area Chart
-- Horizontal Bar Chart
+---
 
-#### Chart Features:
-- **Scrollable Charts**: When the number of x-axis values increases, the chart becomes horizontally scrollable instead of reducing bar width
-- **Skip Null/Zero Values**: Automatically filters out null and zero values from charts (optional toggle)
-- **Aggregation Methods**: Sum, Average, Count, Min, Max
-- **Group by X-Axis**: Aggregate duplicate x-axis values
-- **Zoom & Pan**: Mouse wheel zoom and pan support
+## 🚀 Quick Start (3 Simple Steps!)
 
-### 5. **Responsive Design**
-- Modern gradient UI with purple theme
-- Step-by-step workflow with numbered badges
-- Mobile-friendly responsive layout
-
-## Project Structure
-
-```
-Data-Playgroup/
-├── dashboard/                  # Django app
-│   ├── views.py               # Backend views (Excel handling, API endpoints)
-│   ├── urls.py                # URL routing for dashboard
-│   └── templates/
-│       └── dashboard/
-│           └── index.html     # Main template with AG Grid & Chart.js
-├── myproject/                 # Django project
-│   ├── settings.py            # Django settings
-│   ├── urls.py                # Main URL configuration
-│   └── wsgi.py                # WSGI configuration
-├── manage.py                  # Django management script
-├── requirements.txt           # Python dependencies
-├── data.xlsx                  # Your Excel data file (place here)
-└── README.md                  # This file
-```
-
-## Installation & Setup
-
-### 1. Install Dependencies
-
+### Step 1: Install Dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-Dependencies include:
-- Django 5.0.0
-- pandas 2.1.4
-- openpyxl 3.1.2
-- django-cors-headers 4.3.1
-- gunicorn 21.2.0
-
-### 2. Add Your Excel File
-
-Place your Excel file in the root directory and name it `data.xlsx`, or update the file path in `dashboard/views.py`:
-
-```python
-# In dashboard/views.py, line 14
-df = pd.read_excel(os.path.join(BASE_DIR, 'data.xlsx'))
-```
-
-**Note**: If no Excel file is found, the app will create a sample DataFrame with dummy data.
-
-### 3. Run Migrations
-
+### Step 2: Run the App
 ```bash
-python manage.py migrate
+python app.py
 ```
 
-### 4. Start the Development Server
+### Step 3: Open Your Browser
+Go to: **http://127.0.0.1:5000/**
 
-```bash
-python manage.py runserver
+That's it! 🎉
+
+---
+
+## 📁 Simple Project Structure
+
+```
+Data-Playgroup/
+├── app.py                 # Main Flask application (all backend code here!)
+├── templates/
+│   └── index.html        # Single HTML file (all frontend code here!)
+├── requirements.txt      # Python dependencies
+├── data.xlsx            # Your Excel file (optional - sample data loads if missing)
+└── README.md            # This file
 ```
 
-The application will be available at: `http://127.0.0.1:8000/`
+**Just 2 files to understand:**
+1. **app.py** - All Python/backend code (only 103 lines!)
+2. **templates/index.html** - All HTML/CSS/JavaScript (complete UI)
 
-## Usage Guide
+---
 
-### Step 1: Select Columns to Display
-1. Check/uncheck columns you want to display
-2. Click "Load Selected Columns" to update the table
-3. Use "Select All" or "Deselect All" for quick selection
+## 📖 How to Use
 
-### Step 2: Initialize and Use Slicers
-1. Click "Initialize Slicers" to load unique values from your columns
-2. Select specific values from each slicer to filter data
-3. Click "Apply Filters" to filter the AG Grid table
-4. Use "Clear All Filters" to reset
+### 1️⃣ Select Columns
+- Check the columns you want to see
+- Click "Load Selected Columns"
 
-**Note**: At least 5 slicers will be created based on your selected columns.
+### 2️⃣ Use Slicers to Filter Data
+- Click "Initialize Slicers"
+- Check boxes in each slicer to filter by specific values
+- Click "Apply Filters" to update the table
 
-### Step 3: View and Filter Data in AG Grid
-- Use the column filters in the table header
+### 3️⃣ View Your Data
+- The AG Grid table shows your filtered data
 - Sort columns by clicking headers
-- The table automatically reflects slicer filters
+- Use the search boxes to filter further
 
-### Step 4: Create Dynamic Charts
-1. Select Chart Type from dropdown
-2. Choose X-Axis Column (categorical data)
-3. Choose Y-Axis Column (numerical data)
-4. Select Aggregation Method (Sum, Average, etc.)
-5. Toggle "Group by X-Axis" to aggregate duplicate values
-6. Toggle "Skip Null & Zero Values" to clean your data
-7. Click "Generate Chart"
+### 4️⃣ Create Charts
+- Choose chart type
+- Select X-axis and Y-axis columns
+- Pick aggregation method (Sum, Average, etc.)
+- Toggle "Skip Null & Zero Values" ON to clean your chart
+- Click "Generate Chart"
 
-**Chart Scrolling**: If you have many x-axis values (e.g., 50+ data points), the chart will automatically become horizontally scrollable to maintain readable bar widths.
+**Pro Tip:** If your chart has many bars, it will automatically become scrollable so you can scroll left/right to see all your data!
 
-## API Endpoints
+---
 
-### 1. `GET /`
-Renders the main dashboard page with all columns.
+## 🔧 Customization
 
-### 2. `POST /get_data`
-Returns data for selected columns.
+### Use Your Own Excel File
+Just place your Excel file in the project folder and name it `data.xlsx`
 
-**Request Body**:
-```json
-{
-  "columns": ["Column1", "Column2", "Column3"]
-}
-```
-
-**Response**:
-```json
-{
-  "data": [{...}, {...}],
-  "columns": ["Column1", "Column2", "Column3"]
-}
-```
-
-### 3. `POST /get_unique_values`
-Returns unique values for a specific column (used by slicers).
-
-**Request Body**:
-```json
-{
-  "column": "Department"
-}
-```
-
-**Response**:
-```json
-{
-  "column": "Department",
-  "uniqueValues": ["IT", "HR", "Sales"]
-}
-```
-
-## Key Implementation Details
-
-### Skip Null/Zero Values Logic
-The application filters data in two stages:
-
-1. **Before Aggregation** (dashboard/templates/dashboard/index.html:728-731):
-```javascript
-// Skip null/zero values if option is enabled (before aggregation)
-if (skipNullZero && (yVal === null || yVal === undefined || yVal === 0 || isNaN(yVal))) {
-    return;
-}
-```
-
-2. **After Aggregation** (dashboard/templates/dashboard/index.html:753-756):
-```javascript
-// Skip if aggregated value is zero (when skipNullZero is enabled)
-if (skipNullZero && aggregatedValue === 0) {
-    return;
-}
-```
-
-### Scrollable Chart Implementation
-Charts dynamically calculate width based on data points (dashboard/templates/dashboard/index.html:677-690):
-
-```javascript
-// Calculate dynamic width for scrollable chart
-const minBarWidth = 40; // minimum width per bar in pixels
-const calculatedWidth = Math.max(800, xValues.length * minBarWidth);
-
-if (chartType === 'bar' || chartType === 'horizontalBar') {
-    chartContainer.style.width = calculatedWidth + 'px';
-    canvas.width = calculatedWidth;
-}
-```
-
-### Slicer Integration with AG Grid
-Slicers use AG Grid's native filter API (dashboard/templates/dashboard/index.html:585-598):
-
-```javascript
-// Apply filters to AG Grid
-Object.keys(slicersData).forEach(column => {
-    const filterInstance = gridApi.getColumnFilterInstance(column);
-
-    if (filtersByColumn[column] && filtersByColumn[column].length > 0) {
-        filterInstance.setModel({
-            filterType: 'set',
-            values: filtersByColumn[column]
-        });
-    } else {
-        filterInstance.setModel(null);
-    }
-});
-```
-
-## Technologies Used
-
-- **Backend**: Django 5.0
-- **Data Processing**: pandas, openpyxl
-- **Frontend Table**: AG Grid Community 31.0.0
-- **Charts**: Chart.js 4.4.0 with Zoom Plugin
-- **Styling**: Custom CSS with gradient themes
-
-## Customization
-
-### Change Excel File Path
-Edit `dashboard/views.py` line 14:
+Or update line 10 in `app.py`:
 ```python
-df = pd.read_excel(os.path.join(BASE_DIR, 'your-file.xlsx'))
+df = pd.read_excel("your-file.xlsx")
 ```
 
-### Adjust Number of Slicers
-Edit `dashboard/templates/dashboard/index.html` line 499:
+### Change Number of Slicers
+Edit line 499 in `templates/index.html`:
 ```javascript
-const columnsForSlicers = selectedColumns.slice(0, 10); // Change 10 to your desired number
+const columnsForSlicers = selectedColumns.slice(0, 10); // Change 10 to any number
 ```
 
-### Modify Chart Bar Width
-Edit `dashboard/templates/dashboard/index.html` line 677:
+### Adjust Chart Scroll Width
+Edit line 677 in `templates/index.html`:
 ```javascript
-const minBarWidth = 40; // Change to adjust minimum bar width
+const minBarWidth = 40; // Change to make bars wider or narrower
 ```
 
-## Production Deployment
+---
 
-For production deployment with Gunicorn:
+## 🎨 All Chart Features
 
+### Chart Types
+- **Bar Chart** - Great for comparing categories
+- **Line Chart** - Perfect for trends over time
+- **Pie Chart** - Show proportions
+- **Scatter Plot** - Find correlations
+- **Doughnut** - Like pie but fancier
+- **Area Chart** - Filled line chart
+- **Horizontal Bar** - Bars go sideways
+
+### Chart Options
+- **Aggregation**: Sum, Average, Count, Min, Max
+- **Group by X-Axis**: Combine duplicate values
+- **Skip Null & Zero**: Remove empty/zero data points
+- **Zoom & Pan**: Mouse wheel to zoom, drag to pan
+
+---
+
+## 📊 Sample Data
+
+If you don't have an Excel file, the app automatically creates sample data with:
+- **8 employees** with different attributes
+- **6 columns**: Name, Age, Department, Salary, Experience, City
+- Perfect for testing all features!
+
+---
+
+## 🔌 API Endpoints
+
+The app has 4 simple endpoints:
+
+1. **GET /** - Main page
+2. **POST /get_data** - Get selected columns
+3. **POST /get_unique_values** - Get unique values for slicers
+4. **POST /get_chart_data** - Get chart data (legacy, not actively used)
+
+---
+
+## 💻 Technologies Used
+
+- **Backend**: Flask 3.0 (Python micro-framework)
+- **Data**: pandas, openpyxl (Excel reading)
+- **Table**: AG Grid Community 31.0
+- **Charts**: Chart.js 4.4 with Zoom Plugin
+- **Styling**: Pure CSS (no frameworks!)
+
+---
+
+## 🐛 Troubleshooting
+
+### "Module not found" error
 ```bash
-gunicorn myproject.wsgi:application --bind 0.0.0.0:8000
+pip install -r requirements.txt
 ```
 
-Remember to:
-1. Set `DEBUG = False` in `myproject/settings.py`
-2. Configure `ALLOWED_HOSTS` appropriately
-3. Set up static files serving
-4. Use a proper database (PostgreSQL, MySQL) instead of SQLite
+### "data.xlsx not found"
+No problem! The app creates sample data automatically.
 
-## License
+### Charts not showing
+Make sure you:
+1. Selected columns and loaded data
+2. Chose both X and Y axis columns
+3. Have some data after filtering
 
-This project is open source and available under the MIT License.
+### Port already in use
+Change the port in `app.py` line 103:
+```python
+app.run(debug=True, port=5001)  # Use different port
+```
 
-## Support
+---
 
-For issues or questions, please open an issue on the project repository.
+## 🎓 Learning Flask?
+
+This project is a great learning resource! Here's what you can learn:
+
+- **app.py** teaches you:
+  - Flask routing (`@app.route`)
+  - Handling POST requests
+  - Working with pandas DataFrames
+  - Returning JSON responses
+
+- **templates/index.html** teaches you:
+  - AG Grid integration
+  - Chart.js usage
+  - Async JavaScript (fetch API)
+  - DOM manipulation
+
+---
+
+## 📝 License
+
+This project is open source and free to use!
+
+## 🤝 Contributing
+
+Feel free to:
+- Add new chart types
+- Improve the UI
+- Add more aggregation methods
+- Create more complex filters
+
+---
+
+## 🙏 Credits
+
+Built with:
+- [Flask](https://flask.palletsprojects.com/)
+- [pandas](https://pandas.pydata.org/)
+- [AG Grid](https://www.ag-grid.com/)
+- [Chart.js](https://www.chartjs.org/)
+
+---
+
+**Enjoy analyzing your data! 📊✨**
