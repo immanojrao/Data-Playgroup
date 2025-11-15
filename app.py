@@ -1,13 +1,34 @@
 from flask import Flask, render_template, request, jsonify, session
 import pandas as pd
+import numpy as np
 import os
 from datetime import datetime
+import json
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-change-in-production')
 
 # Path to Excel file
 DATA_FILE = 'data.xlsx'
+
+def convert_to_json_serializable(obj):
+    """Convert pandas/numpy objects to JSON-serializable types"""
+    if pd.isna(obj):
+        return None
+    elif isinstance(obj, (pd.Timestamp, datetime)):
+        return obj.strftime('%Y-%m-%d')
+    elif isinstance(obj, (np.integer, np.int64, np.int32)):
+        return int(obj)
+    elif isinstance(obj, (np.floating, np.float64, np.float32)):
+        return float(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, (list, tuple)):
+        return [convert_to_json_serializable(item) for item in obj]
+    elif isinstance(obj, dict):
+        return {k: convert_to_json_serializable(v) for k, v in obj.items()}
+    else:
+        return obj
 
 def load_data():
     """Load Excel data and convert dates"""
@@ -70,8 +91,11 @@ def index():
             # Filter out NaT values before getting min/max
             valid_dates = df['Date'].dropna()
             if len(valid_dates) > 0:
-                min_date = valid_dates.min().strftime('%Y-%m-%d')
-                max_date = valid_dates.max().strftime('%Y-%m-%d')
+                min_date_obj = valid_dates.min()
+                max_date_obj = valid_dates.max()
+                # Ensure proper conversion to string
+                min_date = convert_to_json_serializable(min_date_obj)
+                max_date = convert_to_json_serializable(max_date_obj)
         except Exception as e:
             print(f"Error getting date range: {str(e)}")
             # Use default dates if conversion fails
@@ -109,8 +133,9 @@ def get_data():
                 # Convert datetime to string, NaT becomes None
                 df[col] = df[col].apply(lambda x: x.strftime('%Y-%m-%d') if pd.notna(x) else None)
 
-        # Convert to dict records
+        # Convert to dict records and ensure all values are JSON serializable
         records = df.to_dict('records')
+        records = [convert_to_json_serializable(record) for record in records]
 
         # Save state in session
         session['selected_columns'] = selected_columns
@@ -162,9 +187,9 @@ def get_chart_data():
         else:
             result = df.groupby(x_column)[y_column].sum()
 
-        # Convert to lists
-        labels = result.index.tolist()
-        values = result.values.tolist()
+        # Convert to lists and ensure JSON serializable
+        labels = [convert_to_json_serializable(x) for x in result.index.tolist()]
+        values = [convert_to_json_serializable(x) for x in result.values.tolist()]
 
         return jsonify({
             'success': True,
