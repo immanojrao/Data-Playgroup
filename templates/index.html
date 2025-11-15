@@ -768,6 +768,7 @@
             // Destroy existing chart
             if (currentChart) {
                 currentChart.destroy();
+                currentChart = null;
             }
 
             // Convert area to line with fill, scatter uses scatter type
@@ -866,11 +867,21 @@
             // Destroy existing chart
             if (currentChart) {
                 currentChart.destroy();
+                currentChart = null;
             }
 
             // Handle combination chart with dual Y-axis
             const isCombination = chartType === 'combination';
-            let actualChartType = isCombination ? 'bar' : chartType;
+
+            // Convert area to line with fill
+            let actualChartType = chartType;
+            let isArea = false;
+            if (chartType === 'area') {
+                actualChartType = 'line';
+                isArea = true;
+            } else if (isCombination) {
+                actualChartType = 'bar';
+            }
 
             // Calculate fixed Y-axis ranges for combination charts
             let yAxisConfig = {};
@@ -928,6 +939,17 @@
                     datasets[1].yAxisID = 'y2';
                     datasets[1].type = 'line';
                 }
+            }
+
+            // Apply fill to all datasets for area charts
+            if (isArea) {
+                datasets.forEach(dataset => {
+                    dataset.fill = true;
+                    // Make the fill slightly transparent
+                    if (dataset.backgroundColor) {
+                        dataset.backgroundColor = dataset.backgroundColor.replace('0.8', '0.5');
+                    }
+                });
             }
 
             // Create chart
