@@ -238,10 +238,6 @@
             background: linear-gradient(135deg, #004f8a, #003d6a);
             box-shadow: 0 3px 8px rgba(0, 61, 106, 0.4);
         }
-
-        #endDateSlider::-webkit-slider-track {
-            background: linear-gradient(to right, #d1d8e0 0%, #0066b2 0%, #0066b2 100%, #d1d8e0 100%);
-        }
     </style>
 </head>
 <body>
@@ -264,48 +260,46 @@
             </div>
         </div>
 
-        <!-- Date Filter -->
-        <div class="controls">
-            <div class="control-group">
-                <div class="section-title">Date Filter</div>
-                <div style="padding: 20px;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
-                        <div>
-                            <strong>Start:</strong> <span id="startDateDisplay">{{ min_date }}</span>
-                        </div>
-                        <div>
-                            <strong>End:</strong> <span id="endDateDisplay">{{ max_date }}</span>
-                        </div>
-                    </div>
-
-                    <!-- Hidden inputs for actual date values -->
-                    <input type="hidden" id="startDate" value="{{ min_date }}">
-                    <input type="hidden" id="endDate" value="{{ max_date }}">
-                    <input type="hidden" id="minDate" value="{{ min_date }}">
-                    <input type="hidden" id="maxDate" value="{{ max_date }}">
-
-                    <!-- Dual range slider -->
-                    <div style="position: relative; height: 50px; margin-bottom: 10px;">
-                        <input type="range" id="startDateSlider" min="0" max="100" value="0"
-                               style="position: absolute; width: 100%; pointer-events: none;">
-                        <input type="range" id="endDateSlider" min="0" max="100" value="100"
-                               style="position: absolute; width: 100%; pointer-events: none;">
-                    </div>
-
-                    <div style="text-align: center; margin-top: 10px;">
-                        <button onclick="applyDateFilter()">Apply Date Filter</button>
-                        <button onclick="resetDateFilter()" style="background: #95a5a6; margin-left: 10px;">Reset</button>
-                    </div>
-                </div>
-                <div class="info-text">Drag the sliders to select a date range. Filter applies to both grid and charts.</div>
-            </div>
-        </div>
+        <!-- Hidden inputs for date values -->
+        <input type="hidden" id="startDate" value="{{ min_date }}">
+        <input type="hidden" id="endDate" value="{{ max_date }}">
+        <input type="hidden" id="minDate" value="{{ min_date }}">
+        <input type="hidden" id="maxDate" value="{{ max_date }}">
 
         <!-- Data Grid -->
         <div class="grid-container">
-            <div class="section-title">Data Grid</div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+                <div style="flex: 0 0 500px;">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div style="font-weight: 600; color: #003d6a; white-space: nowrap;">📅 Date Range:</div>
+                        <div style="flex: 1;">
+                            <div style="font-size: 12px; color: #0066b2; margin-bottom: 5px; display: flex; justify-content: space-between;">
+                                <span id="startDateDisplay">{{ min_date }}</span>
+                                <span id="endDateDisplay">{{ max_date }}</span>
+                            </div>
+                            <!-- Dual range slider with blue selected area -->
+                            <div style="position: relative; height: 30px;">
+                                <div id="sliderTrack" style="position: absolute; top: 11px; left: 0; right: 0; height: 8px; background: #d1d8e0; border-radius: 4px;"></div>
+                                <div id="sliderRange" style="position: absolute; top: 11px; height: 8px; background: linear-gradient(135deg, #0066b2, #004f8a); border-radius: 4px;"></div>
+                                <input type="range" id="startDateSlider" min="0" max="100" value="0"
+                                       style="position: absolute; width: 100%; pointer-events: none;">
+                                <input type="range" id="endDateSlider" min="0" max="100" value="100"
+                                       style="position: absolute; width: 100%; pointer-events: none;">
+                            </div>
+                        </div>
+                        <button onclick="applyDateFilter()" style="padding: 8px 16px; font-size: 12px;">Apply</button>
+                        <button onclick="resetDateFilter()" style="background: linear-gradient(135deg, #95a5a6, #7f8c8d); padding: 8px 16px; font-size: 12px;">Reset</button>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div class="section-title" style="border: none; margin: 0;">Data Grid</div>
+                    <button onclick="exportToCSV()" style="padding: 8px 16px; font-size: 12px;">
+                        📥 Export to CSV
+                    </button>
+                </div>
+            </div>
             <div id="dataGrid" class="ag-theme-alpine"></div>
-            <div class="info-text">You can sort, filter, and search within the grid. <strong>Grid filters automatically update the chart in real-time!</strong></div>
+            <div class="info-text">You can sort, filter, and search within the grid. <strong>Grid filters automatically update the chart in real-time!</strong> Export filtered data using the button above.</div>
         </div>
 
         <!-- Chart Controls -->
@@ -362,7 +356,7 @@
                 </div>
             </div>
             <div class="info-text" style="margin-top: 10px; margin-bottom: 15px;">
-                💡 <strong>Tip:</strong> Select a Legend Column to create multi-series charts (e.g., grouped/stacked bars by category)
+                💡 <strong>Tip:</strong> Select a Legend Column to create stacked bar charts (e.g., Sales by Category, stacked by Region)
             </div>
             <button onclick="generateChart()">Generate Chart</button>
         </div>
@@ -487,6 +481,23 @@
                 xColumn.innerHTML += `<option value="${col}">${col}</option>`;
                 yColumn.innerHTML += `<option value="${col}">${col}</option>`;
                 legendColumn.innerHTML += `<option value="${col}">${col}</option>`;
+            });
+        }
+
+        // Export grid data to CSV
+        function exportToCSV() {
+            if (!gridApi) {
+                alert('No data to export');
+                return;
+            }
+
+            // Export filtered data only
+            gridApi.exportDataAsCsv({
+                fileName: 'data_export_' + new Date().toISOString().split('T')[0] + '.csv',
+                onlySelected: false,
+                processCellCallback: function(params) {
+                    return params.value;
+                }
             });
         }
 
@@ -767,14 +778,18 @@
                         },
                         title: {
                             display: true,
-                            text: `${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart: ${aggregation} of ${yColumn} by ${xColumn} (grouped by ${legendColumn})`,
+                            text: `${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart: ${aggregation} of ${yColumn} by ${xColumn} (stacked by ${legendColumn})`,
                             font: {
                                 size: 16
                             }
                         }
                     },
                     scales: chartType === 'bar' || chartType === 'line' ? {
+                        x: {
+                            stacked: true
+                        },
                         y: {
+                            stacked: true,
                             beginAtZero: true
                         }
                     } : {}
@@ -782,7 +797,7 @@
             });
 
             document.getElementById('chartInfo').textContent =
-                `Chart showing ${aggregation} of ${yColumn} by ${xColumn}, grouped by ${legendColumn} (${labels.length} categories, ${datasets.length} series)`;
+                `Stacked chart showing ${aggregation} of ${yColumn} by ${xColumn}, broken down by ${legendColumn} (${labels.length} categories, ${datasets.length} series)`;
         }
 
         // Date Range Slider Functions
@@ -849,6 +864,17 @@
             document.getElementById('endDate').value = endDate;
             document.getElementById('startDateDisplay').textContent = startDate;
             document.getElementById('endDateDisplay').textContent = endDate;
+
+            // Update blue range visual
+            updateBlueRange(startPercent, endPercent);
+        }
+
+        function updateBlueRange(startPercent, endPercent) {
+            const sliderRange = document.getElementById('sliderRange');
+            if (sliderRange) {
+                sliderRange.style.left = startPercent + '%';
+                sliderRange.style.width = (endPercent - startPercent) + '%';
+            }
         }
 
         function updateSliderFromDate() {
@@ -873,6 +899,9 @@
             document.getElementById('endDateSlider').value = Math.round(endPercent);
             document.getElementById('startDateDisplay').textContent = startDate;
             document.getElementById('endDateDisplay').textContent = endDate;
+
+            // Update blue range visual
+            updateBlueRange(startPercent, endPercent);
         }
 
         function resetDateFilter() {
@@ -885,6 +914,9 @@
             document.getElementById('endDateSlider').value = 100;
             document.getElementById('startDateDisplay').textContent = minDate;
             document.getElementById('endDateDisplay').textContent = maxDate;
+
+            // Update blue range visual to full range
+            updateBlueRange(0, 100);
 
             applyDateFilter();
         }
