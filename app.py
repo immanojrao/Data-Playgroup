@@ -12,9 +12,49 @@ DATA_FILE = 'data.xlsx'
 def load_data():
     """Load Excel data and convert dates"""
     df = pd.read_excel(DATA_FILE)
-    # Convert Date column to datetime
+
+    # Convert Date column to datetime with robust handling
     if 'Date' in df.columns:
-        df['Date'] = pd.to_datetime(df['Date'])
+        try:
+            # Try to convert dates, coercing errors to NaT
+            df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
+
+            # If all values became NaT, try common date formats
+            if df['Date'].isna().all():
+                date_formats = ['%Y-%m-%d', '%m/%d/%Y', '%d/%m/%Y', '%Y/%m/%d', '%d-%m-%Y', '%m-%d-%Y']
+                for fmt in date_formats:
+                    try:
+                        df['Date'] = pd.to_datetime(df['Date'], format=fmt, errors='coerce')
+                        if not df['Date'].isna().all():
+                            break
+                    except:
+                        continue
+
+            # Log warning if some dates couldn't be parsed
+            null_count = df['Date'].isna().sum()
+            if null_count > 0:
+                print(f"Warning: {null_count} date values could not be parsed and were set to null")
+        except Exception as e:
+            print(f"Error converting dates: {str(e)}")
+            # Keep original values if conversion fails completely
+            pass
+
+    # Auto-detect and convert other date-like columns
+    for col in df.columns:
+        if col != 'Date' and df[col].dtype == 'object':
+            # Try to detect if column contains dates
+            sample_val = df[col].dropna().iloc[0] if len(df[col].dropna()) > 0 else None
+            if sample_val and isinstance(sample_val, str):
+                # Check if it looks like a date
+                if any(sep in str(sample_val) for sep in ['-', '/', '.']):
+                    try:
+                        converted = pd.to_datetime(df[col], errors='coerce')
+                        # If more than 50% converted successfully, it's likely a date column
+                        if converted.notna().sum() / len(df) > 0.5:
+                            df[col] = converted
+                    except:
+                        pass
+
     return df
 
 @app.route('/')
@@ -24,11 +64,18 @@ def index():
     columns = df.columns.tolist()
 
     # Get date range for date filter
+    min_date = max_date = None
     if 'Date' in df.columns:
-        min_date = df['Date'].min().strftime('%Y-%m-%d')
-        max_date = df['Date'].max().strftime('%Y-%m-%d')
-    else:
-        min_date = max_date = None
+        try:
+            # Filter out NaT values before getting min/max
+            valid_dates = df['Date'].dropna()
+            if len(valid_dates) > 0:
+                min_date = valid_dates.min().strftime('%Y-%m-%d')
+                max_date = valid_dates.max().strftime('%Y-%m-%d')
+        except Exception as e:
+            print(f"Error getting date range: {str(e)}")
+            # Use default dates if conversion fails
+            min_date = max_date = None
 
     return render_template('index.html',
                          columns=columns,
@@ -57,8 +104,10 @@ def get_data():
             df = df[selected_columns]
 
         # Convert dates to string for JSON serialization
-        if 'Date' in df.columns:
-            df['Date'] = df['Date'].dt.strftime('%Y-%m-%d')
+        for col in df.columns:
+            if pd.api.types.is_datetime64_any_dtype(df[col]):
+                # Convert datetime to string, NaT becomes None
+                df[col] = df[col].apply(lambda x: x.strftime('%Y-%m-%d') if pd.notna(x) else None)
 
         # Convert to dict records
         records = df.to_dict('records')
