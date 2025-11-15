@@ -1,7 +1,9 @@
 from flask import Flask, render_template, request, jsonify, session
 import pandas as pd
+import numpy as np
 import os
 from datetime import datetime
+import json
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-change-in-production')
@@ -9,12 +11,71 @@ app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-change-in-product
 # Path to Excel file
 DATA_FILE = 'data.xlsx'
 
+def convert_to_json_serializable(obj):
+    """Convert pandas/numpy objects to JSON-serializable types"""
+    if pd.isna(obj):
+        return None
+    elif isinstance(obj, (pd.Timestamp, datetime)):
+        return obj.strftime('%Y-%m-%d')
+    elif isinstance(obj, (np.integer, np.int64, np.int32)):
+        return int(obj)
+    elif isinstance(obj, (np.floating, np.float64, np.float32)):
+        return float(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, (list, tuple)):
+        return [convert_to_json_serializable(item) for item in obj]
+    elif isinstance(obj, dict):
+        return {k: convert_to_json_serializable(v) for k, v in obj.items()}
+    else:
+        return obj
+
 def load_data():
     """Load Excel data and convert dates"""
     df = pd.read_excel(DATA_FILE)
-    # Convert Date column to datetime
+
+    # Convert Date column to datetime with robust handling
     if 'Date' in df.columns:
-        df['Date'] = pd.to_datetime(df['Date'])
+        try:
+            # Try to convert dates, coercing errors to NaT
+            df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
+
+            # If all values became NaT, try common date formats
+            if df['Date'].isna().all():
+                date_formats = ['%Y-%m-%d', '%m/%d/%Y', '%d/%m/%Y', '%Y/%m/%d', '%d-%m-%Y', '%m-%d-%Y']
+                for fmt in date_formats:
+                    try:
+                        df['Date'] = pd.to_datetime(df['Date'], format=fmt, errors='coerce')
+                        if not df['Date'].isna().all():
+                            break
+                    except:
+                        continue
+
+            # Log warning if some dates couldn't be parsed
+            null_count = df['Date'].isna().sum()
+            if null_count > 0:
+                print(f"Warning: {null_count} date values could not be parsed and were set to null")
+        except Exception as e:
+            print(f"Error converting dates: {str(e)}")
+            # Keep original values if conversion fails completely
+            pass
+
+    # Auto-detect and convert other date-like columns
+    for col in df.columns:
+        if col != 'Date' and df[col].dtype == 'object':
+            # Try to detect if column contains dates
+            sample_val = df[col].dropna().iloc[0] if len(df[col].dropna()) > 0 else None
+            if sample_val and isinstance(sample_val, str):
+                # Check if it looks like a date
+                if any(sep in str(sample_val) for sep in ['-', '/', '.']):
+                    try:
+                        converted = pd.to_datetime(df[col], errors='coerce')
+                        # If more than 50% converted successfully, it's likely a date column
+                        if converted.notna().sum() / len(df) > 0.5:
+                            df[col] = converted
+                    except:
+                        pass
+
     return df
 
 @app.route('/')
@@ -24,11 +85,21 @@ def index():
     columns = df.columns.tolist()
 
     # Get date range for date filter
+    min_date = max_date = None
     if 'Date' in df.columns:
-        min_date = df['Date'].min().strftime('%Y-%m-%d')
-        max_date = df['Date'].max().strftime('%Y-%m-%d')
-    else:
-        min_date = max_date = None
+        try:
+            # Filter out NaT values before getting min/max
+            valid_dates = df['Date'].dropna()
+            if len(valid_dates) > 0:
+                min_date_obj = valid_dates.min()
+                max_date_obj = valid_dates.max()
+                # Ensure proper conversion to string
+                min_date = convert_to_json_serializable(min_date_obj)
+                max_date = convert_to_json_serializable(max_date_obj)
+        except Exception as e:
+            print(f"Error getting date range: {str(e)}")
+            # Use default dates if conversion fails
+            min_date = max_date = None
 
     return render_template('index.html',
                          columns=columns,
@@ -57,11 +128,14 @@ def get_data():
             df = df[selected_columns]
 
         # Convert dates to string for JSON serialization
-        if 'Date' in df.columns:
-            df['Date'] = df['Date'].dt.strftime('%Y-%m-%d')
+        for col in df.columns:
+            if pd.api.types.is_datetime64_any_dtype(df[col]):
+                # Convert datetime to string, NaT becomes None
+                df[col] = df[col].apply(lambda x: x.strftime('%Y-%m-%d') if pd.notna(x) else None)
 
-        # Convert to dict records
+        # Convert to dict records and ensure all values are JSON serializable
         records = df.to_dict('records')
+        records = [convert_to_json_serializable(record) for record in records]
 
         # Save state in session
         session['selected_columns'] = selected_columns
@@ -113,9 +187,9 @@ def get_chart_data():
         else:
             result = df.groupby(x_column)[y_column].sum()
 
-        # Convert to lists
-        labels = result.index.tolist()
-        values = result.values.tolist()
+        # Convert to lists and ensure JSON serializable
+        labels = [convert_to_json_serializable(x) for x in result.index.tolist()]
+        values = [convert_to_json_serializable(x) for x in result.values.tolist()]
 
         return jsonify({
             'success': True,

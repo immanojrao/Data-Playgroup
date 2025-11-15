@@ -238,10 +238,6 @@
             background: linear-gradient(135deg, #004f8a, #003d6a);
             box-shadow: 0 3px 8px rgba(0, 61, 106, 0.4);
         }
-
-        #endDateSlider::-webkit-slider-track {
-            background: linear-gradient(to right, #d1d8e0 0%, #0066b2 0%, #0066b2 100%, #d1d8e0 100%);
-        }
     </style>
 </head>
 <body>
@@ -264,48 +260,46 @@
             </div>
         </div>
 
-        <!-- Date Filter -->
-        <div class="controls">
-            <div class="control-group">
-                <div class="section-title">Date Filter</div>
-                <div style="padding: 20px;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
-                        <div>
-                            <strong>Start:</strong> <span id="startDateDisplay">{{ min_date }}</span>
-                        </div>
-                        <div>
-                            <strong>End:</strong> <span id="endDateDisplay">{{ max_date }}</span>
-                        </div>
-                    </div>
-
-                    <!-- Hidden inputs for actual date values -->
-                    <input type="hidden" id="startDate" value="{{ min_date }}">
-                    <input type="hidden" id="endDate" value="{{ max_date }}">
-                    <input type="hidden" id="minDate" value="{{ min_date }}">
-                    <input type="hidden" id="maxDate" value="{{ max_date }}">
-
-                    <!-- Dual range slider -->
-                    <div style="position: relative; height: 50px; margin-bottom: 10px;">
-                        <input type="range" id="startDateSlider" min="0" max="100" value="0"
-                               style="position: absolute; width: 100%; pointer-events: none;">
-                        <input type="range" id="endDateSlider" min="0" max="100" value="100"
-                               style="position: absolute; width: 100%; pointer-events: none;">
-                    </div>
-
-                    <div style="text-align: center; margin-top: 10px;">
-                        <button onclick="applyDateFilter()">Apply Date Filter</button>
-                        <button onclick="resetDateFilter()" style="background: #95a5a6; margin-left: 10px;">Reset</button>
-                    </div>
-                </div>
-                <div class="info-text">Drag the sliders to select a date range. Filter applies to both grid and charts.</div>
-            </div>
-        </div>
+        <!-- Hidden inputs for date values -->
+        <input type="hidden" id="startDate" value="{{ min_date }}">
+        <input type="hidden" id="endDate" value="{{ max_date }}">
+        <input type="hidden" id="minDate" value="{{ min_date }}">
+        <input type="hidden" id="maxDate" value="{{ max_date }}">
 
         <!-- Data Grid -->
         <div class="grid-container">
-            <div class="section-title">Data Grid</div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+                <div style="flex: 0 0 500px;">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div style="font-weight: 600; color: #003d6a; white-space: nowrap;">📅 Date Range:</div>
+                        <div style="flex: 1;">
+                            <div style="font-size: 12px; color: #0066b2; margin-bottom: 5px; display: flex; justify-content: space-between;">
+                                <span id="startDateDisplay">{{ min_date }}</span>
+                                <span id="endDateDisplay">{{ max_date }}</span>
+                            </div>
+                            <!-- Dual range slider with blue selected area -->
+                            <div style="position: relative; height: 30px;">
+                                <div id="sliderTrack" style="position: absolute; top: 11px; left: 0; right: 0; height: 8px; background: #d1d8e0; border-radius: 4px;"></div>
+                                <div id="sliderRange" style="position: absolute; top: 11px; height: 8px; background: linear-gradient(135deg, #0066b2, #004f8a); border-radius: 4px;"></div>
+                                <input type="range" id="startDateSlider" min="0" max="100" value="0"
+                                       style="position: absolute; width: 100%; pointer-events: none;">
+                                <input type="range" id="endDateSlider" min="0" max="100" value="100"
+                                       style="position: absolute; width: 100%; pointer-events: none;">
+                            </div>
+                        </div>
+                        <button onclick="applyDateFilter()" style="padding: 8px 16px; font-size: 12px;">Apply</button>
+                        <button onclick="resetDateFilter()" style="background: linear-gradient(135deg, #95a5a6, #7f8c8d); padding: 8px 16px; font-size: 12px;">Reset</button>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div class="section-title" style="border: none; margin: 0;">Data Grid</div>
+                    <button onclick="exportToCSV()" style="padding: 8px 16px; font-size: 12px;">
+                        📥 Export to CSV
+                    </button>
+                </div>
+            </div>
             <div id="dataGrid" class="ag-theme-alpine"></div>
-            <div class="info-text">You can sort, filter, and search within the grid. <strong>Grid filters automatically update the chart in real-time!</strong></div>
+            <div class="info-text">You can sort, filter, and search within the grid. <strong>Grid filters automatically update the chart in real-time!</strong> Export filtered data using the button above.</div>
         </div>
 
         <!-- Chart Controls -->
@@ -317,6 +311,9 @@
                     <select id="chartType">
                         <option value="bar">Bar Chart</option>
                         <option value="line">Line Chart</option>
+                        <option value="area">Area Chart</option>
+                        <option value="scatter">Scatter Plot</option>
+                        <option value="combination">Combination (Dual Y-Axis)</option>
                         <option value="pie">Pie Chart</option>
                         <option value="doughnut">Doughnut Chart</option>
                         <option value="radar">Radar Chart</option>
@@ -362,7 +359,7 @@
                 </div>
             </div>
             <div class="info-text" style="margin-top: 10px; margin-bottom: 15px;">
-                💡 <strong>Tip:</strong> Select a Legend Column to create multi-series charts (e.g., grouped/stacked bars by category)
+                💡 <strong>Tip:</strong> Select a Legend Column to create stacked bar charts (e.g., Sales by Category, stacked by Region)
             </div>
             <button onclick="generateChart()">Generate Chart</button>
         </div>
@@ -398,6 +395,29 @@
             'rgba(0, 51, 85, 0.85)',      // Very dark blue
             'rgba(76, 147, 194, 0.85)'    // Bright blue accent
         ];
+
+        // Number formatting functions
+        function formatLargeNumber(value) {
+            if (value === null || value === undefined || isNaN(value)) {
+                return value;
+            }
+            const num = Number(value);
+            if (Math.abs(num) >= 1000000) {
+                return '$' + (num / 1000000).toFixed(2) + 'M';
+            }
+            return num;
+        }
+
+        function formatCurrency(value) {
+            if (value === null || value === undefined || isNaN(value)) {
+                return value;
+            }
+            const num = Number(value);
+            if (Math.abs(num) >= 1000000) {
+                return '$' + (num / 1000000).toFixed(2) + 'M';
+            }
+            return '$' + num.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+        }
 
         // Initialize AG Grid
         const gridOptions = {
@@ -452,18 +472,37 @@
                 if (result.success) {
                     currentData = result.data;
 
-                    // Create column definitions
-                    const columnDefs = result.columns.map(col => ({
-                        field: col,
-                        headerName: col
-                    }));
+                    // Create column definitions with number formatting
+                    const columnDefs = result.columns.map(col => {
+                        const colDef = {
+                            field: col,
+                            headerName: col
+                        };
+
+                        // Check if column has numeric values >= 1M
+                        const hasLargeNumbers = result.data.some(row => {
+                            const val = row[col];
+                            return typeof val === 'number' && Math.abs(val) >= 1000000;
+                        });
+
+                        if (hasLargeNumbers) {
+                            colDef.valueFormatter = params => formatLargeNumber(params.value);
+                        }
+
+                        return colDef;
+                    });
 
                     // Update grid
                     gridApi.setGridOption('columnDefs', columnDefs);
                     gridApi.setGridOption('rowData', result.data);
 
-                    // Update chart column dropdowns
+                    // Update chart column dropdowns (preserves selections)
                     updateChartColumns(result.columns);
+
+                    // Update chart if one was already generated
+                    if (currentChartConfig) {
+                        updateChartFromGrid();
+                    }
                 } else {
                     alert('Error loading data: ' + result.error);
                 }
@@ -473,12 +512,22 @@
             }
         }
 
-        // Update chart column dropdowns
+        // Update chart column dropdowns (preserving current selections)
         function updateChartColumns(columns) {
             const xColumn = document.getElementById('xColumn');
             const yColumn = document.getElementById('yColumn');
             const legendColumn = document.getElementById('legendColumn');
+            const chartType = document.getElementById('chartType');
+            const aggregation = document.getElementById('aggregation');
 
+            // Save current selections
+            const savedXColumn = xColumn.value;
+            const savedYColumn = yColumn.value;
+            const savedLegendColumn = legendColumn.value;
+            const savedChartType = chartType.value;
+            const savedAggregation = aggregation.value;
+
+            // Rebuild dropdowns
             xColumn.innerHTML = '<option value="">Select column...</option>';
             yColumn.innerHTML = '<option value="">Select column...</option>';
             legendColumn.innerHTML = '<option value="">None - Single Series</option>';
@@ -487,6 +536,37 @@
                 xColumn.innerHTML += `<option value="${col}">${col}</option>`;
                 yColumn.innerHTML += `<option value="${col}">${col}</option>`;
                 legendColumn.innerHTML += `<option value="${col}">${col}</option>`;
+            });
+
+            // Restore selections if the columns still exist
+            if (savedXColumn && columns.includes(savedXColumn)) {
+                xColumn.value = savedXColumn;
+            }
+            if (savedYColumn && columns.includes(savedYColumn)) {
+                yColumn.value = savedYColumn;
+            }
+            if (savedLegendColumn && (savedLegendColumn === '' || columns.includes(savedLegendColumn))) {
+                legendColumn.value = savedLegendColumn;
+            }
+            // Chart type and aggregation don't need column validation
+            chartType.value = savedChartType;
+            aggregation.value = savedAggregation;
+        }
+
+        // Export grid data to CSV
+        function exportToCSV() {
+            if (!gridApi) {
+                alert('No data to export');
+                return;
+            }
+
+            // Export filtered data only
+            gridApi.exportDataAsCsv({
+                fileName: 'data_export_' + new Date().toISOString().split('T')[0] + '.csv',
+                onlySelected: false,
+                processCellCallback: function(params) {
+                    return params.value;
+                }
             });
         }
 
@@ -688,6 +768,17 @@
             // Destroy existing chart
             if (currentChart) {
                 currentChart.destroy();
+                currentChart = null;
+            }
+
+            // Convert area to line with fill, scatter uses scatter type
+            let actualChartType = chartType;
+            let fill = false;
+            if (chartType === 'area') {
+                actualChartType = 'line';
+                fill = true;
+            } else if (chartType === 'scatter') {
+                actualChartType = 'scatter';
             }
 
             // Prepare dataset colors
@@ -696,21 +787,31 @@
                 backgroundColor = labels.map((_, i) => blueColors[i % blueColors.length]);
                 borderColor = backgroundColor.map(c => c.replace('0.8', '1'));
             } else {
-                backgroundColor = blueColors[0];
+                backgroundColor = fill ? blueColors[0].replace('0.85', '0.5') : blueColors[0];
                 borderColor = blueColors[1];
+            }
+
+            // For scatter, convert to {x, y} format
+            let chartData;
+            if (chartType === 'scatter') {
+                chartData = labels.map((label, i) => ({ x: i, y: values[i] }));
+            } else {
+                chartData = values;
             }
 
             // Create chart
             currentChart = new Chart(ctx, {
-                type: chartType,
+                type: actualChartType,
                 data: {
-                    labels: labels,
+                    labels: chartType === 'scatter' ? undefined : labels,
                     datasets: [{
                         label: `${aggregation} of ${yColumn}`,
-                        data: values,
+                        data: chartData,
                         backgroundColor: backgroundColor,
                         borderColor: borderColor,
-                        borderWidth: 2
+                        borderWidth: 2,
+                        fill: fill,
+                        tension: chartType === 'area' ? 0.4 : 0
                     }]
                 },
                 options: {
@@ -727,11 +828,29 @@
                             font: {
                                 size: 16
                             }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    const value = context.parsed.y || context.parsed;
+                                    label += formatLargeNumber(value);
+                                    return label;
+                                }
+                            }
                         }
                     },
-                    scales: chartType === 'bar' || chartType === 'line' ? {
+                    scales: chartType === 'bar' || chartType === 'line' || chartType === 'area' || chartType === 'scatter' ? {
                         y: {
-                            beginAtZero: true
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return formatLargeNumber(value);
+                                }
+                            }
                         }
                     } : {}
                 }
@@ -748,11 +867,94 @@
             // Destroy existing chart
             if (currentChart) {
                 currentChart.destroy();
+                currentChart = null;
+            }
+
+            // Handle combination chart with dual Y-axis
+            const isCombination = chartType === 'combination';
+
+            // Convert area to line with fill
+            let actualChartType = chartType;
+            let isArea = false;
+            if (chartType === 'area') {
+                actualChartType = 'line';
+                isArea = true;
+            } else if (isCombination) {
+                actualChartType = 'bar';
+            }
+
+            // Calculate fixed Y-axis ranges for combination charts
+            let yAxisConfig = {};
+            let y2AxisConfig = {};
+
+            if (isCombination && datasets.length >= 2) {
+                // Get all values from first dataset (left Y-axis)
+                const dataset1Values = datasets[0].data.filter(v => v !== null && v !== undefined);
+                const min1 = Math.min(...dataset1Values);
+                const max1 = Math.max(...dataset1Values);
+                const range1 = max1 - min1;
+
+                // Get all values from second dataset (right Y-axis)
+                const dataset2Values = datasets[1].data.filter(v => v !== null && v !== undefined);
+                const min2 = Math.min(...dataset2Values);
+                const max2 = Math.max(...dataset2Values);
+                const range2 = max2 - min2;
+
+                // Set fixed ranges with 10% padding
+                yAxisConfig = {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    beginAtZero: true,
+                    min: Math.max(0, min1 - range1 * 0.1),
+                    max: max1 + range1 * 0.1,
+                    ticks: {
+                        callback: function(value) {
+                            return formatLargeNumber(value);
+                        }
+                    }
+                };
+
+                y2AxisConfig = {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    beginAtZero: true,
+                    min: Math.max(0, min2 - range2 * 0.1),
+                    max: max2 + range2 * 0.1,
+                    grid: {
+                        drawOnChartArea: false
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return formatLargeNumber(value);
+                        }
+                    }
+                };
+
+                // Assign datasets to Y-axes
+                datasets[0].yAxisID = 'y';
+                datasets[0].type = 'bar';
+                if (datasets[1]) {
+                    datasets[1].yAxisID = 'y2';
+                    datasets[1].type = 'line';
+                }
+            }
+
+            // Apply fill to all datasets for area charts
+            if (isArea) {
+                datasets.forEach(dataset => {
+                    dataset.fill = true;
+                    // Make the fill slightly transparent
+                    if (dataset.backgroundColor) {
+                        dataset.backgroundColor = dataset.backgroundColor.replace('0.8', '0.5');
+                    }
+                });
             }
 
             // Create chart
             currentChart = new Chart(ctx, {
-                type: chartType,
+                type: actualChartType,
                 data: {
                     labels: labels,
                     datasets: datasets
@@ -767,22 +969,50 @@
                         },
                         title: {
                             display: true,
-                            text: `${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart: ${aggregation} of ${yColumn} by ${xColumn} (grouped by ${legendColumn})`,
+                            text: isCombination ?
+                                `Combination Chart: ${aggregation} of ${yColumn} by ${xColumn} (dual Y-axis by ${legendColumn})` :
+                                `${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart: ${aggregation} of ${yColumn} by ${xColumn} (stacked by ${legendColumn})`,
                             font: {
                                 size: 16
                             }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    const value = context.parsed.y;
+                                    label += formatLargeNumber(value);
+                                    return label;
+                                }
+                            }
                         }
                     },
-                    scales: chartType === 'bar' || chartType === 'line' ? {
+                    scales: isCombination ? {
+                        y: yAxisConfig,
+                        y2: y2AxisConfig
+                    } : (chartType === 'bar' || chartType === 'line' || chartType === 'area' ? {
+                        x: {
+                            stacked: true
+                        },
                         y: {
-                            beginAtZero: true
+                            stacked: true,
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return formatLargeNumber(value);
+                                }
+                            }
                         }
-                    } : {}
+                    } : {})
                 }
             });
 
-            document.getElementById('chartInfo').textContent =
-                `Chart showing ${aggregation} of ${yColumn} by ${xColumn}, grouped by ${legendColumn} (${labels.length} categories, ${datasets.length} series)`;
+            document.getElementById('chartInfo').textContent = isCombination ?
+                `Combination chart with dual Y-axis showing ${aggregation} of ${yColumn} by ${xColumn}, split by ${legendColumn} (${labels.length} categories, ${datasets.length} series)` :
+                `Stacked chart showing ${aggregation} of ${yColumn} by ${xColumn}, broken down by ${legendColumn} (${labels.length} categories, ${datasets.length} series)`;
         }
 
         // Date Range Slider Functions
@@ -849,6 +1079,17 @@
             document.getElementById('endDate').value = endDate;
             document.getElementById('startDateDisplay').textContent = startDate;
             document.getElementById('endDateDisplay').textContent = endDate;
+
+            // Update blue range visual
+            updateBlueRange(startPercent, endPercent);
+        }
+
+        function updateBlueRange(startPercent, endPercent) {
+            const sliderRange = document.getElementById('sliderRange');
+            if (sliderRange) {
+                sliderRange.style.left = startPercent + '%';
+                sliderRange.style.width = (endPercent - startPercent) + '%';
+            }
         }
 
         function updateSliderFromDate() {
@@ -873,6 +1114,9 @@
             document.getElementById('endDateSlider').value = Math.round(endPercent);
             document.getElementById('startDateDisplay').textContent = startDate;
             document.getElementById('endDateDisplay').textContent = endDate;
+
+            // Update blue range visual
+            updateBlueRange(startPercent, endPercent);
         }
 
         function resetDateFilter() {
@@ -885,6 +1129,9 @@
             document.getElementById('endDateSlider').value = 100;
             document.getElementById('startDateDisplay').textContent = minDate;
             document.getElementById('endDateDisplay').textContent = maxDate;
+
+            // Update blue range visual to full range
+            updateBlueRange(0, 100);
 
             applyDateFilter();
         }
@@ -922,10 +1169,32 @@
             // Initialize date sliders
             initializeDateSliders();
 
-            await loadSession();
-            // If no session, load with default settings
-            if (currentData.length === 0) {
-                await loadData();
+            try {
+                await loadSession();
+                // If no session or no data loaded, load with default settings
+                if (currentData.length === 0) {
+                    // Ensure all columns are checked if none are selected
+                    const checkedColumns = document.querySelectorAll('#columnSelector input:checked');
+                    if (checkedColumns.length === 0) {
+                        // Check all columns by default
+                        document.querySelectorAll('#columnSelector input').forEach(cb => {
+                            cb.checked = true;
+                        });
+                    }
+                    await loadData();
+                }
+            } catch (error) {
+                console.error('Error during initialization:', error);
+                // Ensure all columns are checked and load data even if there's an error
+                document.querySelectorAll('#columnSelector input').forEach(cb => {
+                    cb.checked = true;
+                });
+                try {
+                    await loadData();
+                } catch (loadError) {
+                    console.error('Error loading data:', loadError);
+                    alert('Failed to initialize the application. Please refresh the page.');
+                }
             }
         });
     </script>
