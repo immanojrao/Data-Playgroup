@@ -1147,10 +1147,32 @@
             // Initialize date sliders
             initializeDateSliders();
 
-            await loadSession();
-            // If no session, load with default settings
-            if (currentData.length === 0) {
-                await loadData();
+            try {
+                await loadSession();
+                // If no session or no data loaded, load with default settings
+                if (currentData.length === 0) {
+                    // Ensure all columns are checked if none are selected
+                    const checkedColumns = document.querySelectorAll('#columnSelector input:checked');
+                    if (checkedColumns.length === 0) {
+                        // Check all columns by default
+                        document.querySelectorAll('#columnSelector input').forEach(cb => {
+                            cb.checked = true;
+                        });
+                    }
+                    await loadData();
+                }
+            } catch (error) {
+                console.error('Error during initialization:', error);
+                // Ensure all columns are checked and load data even if there's an error
+                document.querySelectorAll('#columnSelector input').forEach(cb => {
+                    cb.checked = true;
+                });
+                try {
+                    await loadData();
+                } catch (loadError) {
+                    console.error('Error loading data:', loadError);
+                    alert('Failed to initialize the application. Please refresh the page.');
+                }
             }
         });
     </script>
