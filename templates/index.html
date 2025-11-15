@@ -17,9 +17,10 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f5f7fa;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
             padding: 20px;
+            min-height: 100vh;
         }
 
         .container {
@@ -28,9 +29,12 @@
         }
 
         h1 {
-            color: #2c3e50;
+            color: #003d6a;
             margin-bottom: 30px;
             text-align: center;
+            font-weight: 600;
+            font-size: 32px;
+            letter-spacing: -0.5px;
         }
 
         .controls {
@@ -89,23 +93,29 @@
         }
 
         button {
-            background: #3498db;
+            background: linear-gradient(135deg, #0066b2 0%, #004f8a 100%);
             color: white;
             border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
+            padding: 12px 24px;
+            border-radius: 6px;
             cursor: pointer;
             font-size: 14px;
             font-weight: 600;
-            transition: background 0.3s;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 61, 106, 0.2);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         button:hover {
-            background: #2980b9;
+            background: linear-gradient(135deg, #004f8a 0%, #003d6a 100%);
+            box-shadow: 0 4px 12px rgba(0, 61, 106, 0.3);
+            transform: translateY(-1px);
         }
 
         button:active {
-            transform: scale(0.98);
+            transform: translateY(0);
+            box-shadow: 0 2px 6px rgba(0, 61, 106, 0.2);
         }
 
         .grid-container {
@@ -163,10 +173,74 @@
 
         .section-title {
             font-size: 18px;
-            color: #2c3e50;
+            color: #003d6a;
             margin-bottom: 15px;
             padding-bottom: 10px;
-            border-bottom: 2px solid #3498db;
+            border-bottom: 3px solid #0066b2;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+
+        /* Date Range Slider Styles */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 8px;
+            background: transparent;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-track {
+            height: 8px;
+            background: #d1d8e0;
+            border-radius: 4px;
+        }
+
+        input[type="range"]::-moz-range-track {
+            height: 8px;
+            background: #d1d8e0;
+            border-radius: 4px;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 22px;
+            height: 22px;
+            background: linear-gradient(135deg, #0066b2, #004f8a);
+            border-radius: 50%;
+            cursor: pointer;
+            pointer-events: auto;
+            position: relative;
+            z-index: 2;
+            box-shadow: 0 2px 6px rgba(0, 61, 106, 0.3);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 22px;
+            height: 22px;
+            background: linear-gradient(135deg, #0066b2, #004f8a);
+            border-radius: 50%;
+            cursor: pointer;
+            pointer-events: auto;
+            border: none;
+            position: relative;
+            z-index: 2;
+            box-shadow: 0 2px 6px rgba(0, 61, 106, 0.3);
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: linear-gradient(135deg, #004f8a, #003d6a);
+            box-shadow: 0 3px 8px rgba(0, 61, 106, 0.4);
+        }
+
+        input[type="range"]::-moz-range-thumb:hover {
+            background: linear-gradient(135deg, #004f8a, #003d6a);
+            box-shadow: 0 3px 8px rgba(0, 61, 106, 0.4);
+        }
+
+        #endDateSlider::-webkit-slider-track {
+            background: linear-gradient(to right, #d1d8e0 0%, #0066b2 0%, #0066b2 100%, #d1d8e0 100%);
         }
     </style>
 </head>
@@ -194,18 +268,36 @@
         <div class="controls">
             <div class="control-group">
                 <div class="section-title">Date Filter</div>
-                <div class="date-filter">
-                    <div>
-                        <label>Start Date</label>
-                        <input type="date" id="startDate" value="{{ min_date }}" min="{{ min_date }}" max="{{ max_date }}">
+                <div style="padding: 20px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                        <div>
+                            <strong>Start:</strong> <span id="startDateDisplay">{{ min_date }}</span>
+                        </div>
+                        <div>
+                            <strong>End:</strong> <span id="endDateDisplay">{{ max_date }}</span>
+                        </div>
                     </div>
-                    <div>
-                        <label>End Date</label>
-                        <input type="date" id="endDate" value="{{ max_date }}" min="{{ min_date }}" max="{{ max_date }}">
+
+                    <!-- Hidden inputs for actual date values -->
+                    <input type="hidden" id="startDate" value="{{ min_date }}">
+                    <input type="hidden" id="endDate" value="{{ max_date }}">
+                    <input type="hidden" id="minDate" value="{{ min_date }}">
+                    <input type="hidden" id="maxDate" value="{{ max_date }}">
+
+                    <!-- Dual range slider -->
+                    <div style="position: relative; height: 50px; margin-bottom: 10px;">
+                        <input type="range" id="startDateSlider" min="0" max="100" value="0"
+                               style="position: absolute; width: 100%; pointer-events: none;">
+                        <input type="range" id="endDateSlider" min="0" max="100" value="100"
+                               style="position: absolute; width: 100%; pointer-events: none;">
                     </div>
-                    <button onclick="applyDateFilter()">Apply Filter</button>
+
+                    <div style="text-align: center; margin-top: 10px;">
+                        <button onclick="applyDateFilter()">Apply Date Filter</button>
+                        <button onclick="resetDateFilter()" style="background: #95a5a6; margin-left: 10px;">Reset</button>
+                    </div>
                 </div>
-                <div class="info-text">Date filter applies to both grid and charts</div>
+                <div class="info-text">Drag the sliders to select a date range. Filter applies to both grid and charts.</div>
             </div>
         </div>
 
@@ -259,6 +351,18 @@
                         <option value="count">Count</option>
                     </select>
                 </div>
+                <div>
+                    <label>Legend Column (Optional)</label>
+                    <select id="legendColumn">
+                        <option value="">None - Single Series</option>
+                        {% for column in columns %}
+                        <option value="{{ column }}">{{ column }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="info-text" style="margin-top: 10px; margin-bottom: 15px;">
+                💡 <strong>Tip:</strong> Select a Legend Column to create multi-series charts (e.g., grouped/stacked bars by category)
             </div>
             <button onclick="generateChart()">Generate Chart</button>
         </div>
@@ -283,16 +387,16 @@
         let currentData = [];
         let currentChartConfig = null;  // Store current chart configuration
 
-        // Blue color palette for charts
+        // Professional blue color palette for charts (Moody's-inspired)
         const blueColors = [
-            'rgba(52, 152, 219, 0.8)',   // Main blue
-            'rgba(41, 128, 185, 0.8)',   // Darker blue
-            'rgba(93, 173, 226, 0.8)',   // Light blue
-            'rgba(46, 134, 193, 0.8)',   // Medium blue
-            'rgba(30, 139, 195, 0.8)',   // Deep blue
-            'rgba(133, 193, 233, 0.8)',  // Sky blue
-            'rgba(21, 101, 192, 0.8)',   // Navy blue
-            'rgba(100, 181, 246, 0.8)'   // Bright blue
+            'rgba(0, 102, 178, 0.85)',    // Moody's primary blue
+            'rgba(0, 79, 138, 0.85)',     // Darker corporate blue
+            'rgba(0, 61, 106, 0.85)',     // Deep navy blue
+            'rgba(51, 133, 196, 0.85)',   // Medium blue
+            'rgba(102, 163, 209, 0.85)',  // Light blue
+            'rgba(153, 193, 222, 0.85)',  // Pale blue
+            'rgba(0, 51, 85, 0.85)',      // Very dark blue
+            'rgba(76, 147, 194, 0.85)'    // Bright blue accent
         ];
 
         // Initialize AG Grid
@@ -373,13 +477,16 @@
         function updateChartColumns(columns) {
             const xColumn = document.getElementById('xColumn');
             const yColumn = document.getElementById('yColumn');
+            const legendColumn = document.getElementById('legendColumn');
 
             xColumn.innerHTML = '<option value="">Select column...</option>';
             yColumn.innerHTML = '<option value="">Select column...</option>';
+            legendColumn.innerHTML = '<option value="">None - Single Series</option>';
 
             columns.forEach(col => {
                 xColumn.innerHTML += `<option value="${col}">${col}</option>`;
                 yColumn.innerHTML += `<option value="${col}">${col}</option>`;
+                legendColumn.innerHTML += `<option value="${col}">${col}</option>`;
             });
         }
 
@@ -398,74 +505,127 @@
         }
 
         // Aggregate data for chart
-        function aggregateData(data, xColumn, yColumn, aggregation) {
-            const groups = {};
+        function aggregateData(data, xColumn, yColumn, aggregation, legendColumn = null) {
+            if (!legendColumn) {
+                // Single series - original logic
+                const groups = {};
 
-            // Group by X column and collect Y values, skip null/undefined/empty Y values
-            data.forEach(row => {
-                const xValue = row[xColumn];
-                const yValue = row[yColumn];
+                data.forEach(row => {
+                    const xValue = row[xColumn];
+                    const yValue = row[yColumn];
 
-                // Skip if Y value is null, undefined, empty, or not a number when expected
-                if (yValue === null || yValue === undefined || yValue === '' ||
-                    (typeof yValue === 'number' && isNaN(yValue))) {
-                    return;  // Skip this row
-                }
+                    if (yValue === null || yValue === undefined || yValue === '' ||
+                        (typeof yValue === 'number' && isNaN(yValue))) {
+                        return;
+                    }
 
-                // Also skip if X value is null/undefined
-                if (xValue === null || xValue === undefined || xValue === '') {
-                    return;
-                }
+                    if (xValue === null || xValue === undefined || xValue === '') {
+                        return;
+                    }
 
-                if (!groups[xValue]) {
-                    groups[xValue] = [];
-                }
-                groups[xValue].push(yValue);
-            });
+                    if (!groups[xValue]) {
+                        groups[xValue] = [];
+                    }
+                    groups[xValue].push(yValue);
+                });
 
-            // Perform aggregation
-            const labels = [];
-            const values = [];
+                const labels = [];
+                const values = [];
 
-            Object.keys(groups).forEach(key => {
-                const groupValues = groups[key];
-                let aggregatedValue;
+                Object.keys(groups).forEach(key => {
+                    const groupValues = groups[key];
+                    let aggregatedValue = performAggregation(groupValues, aggregation);
 
-                switch (aggregation) {
-                    case 'sum':
-                        aggregatedValue = groupValues.reduce((sum, val) => sum + Number(val), 0);
-                        break;
-                    case 'average':
-                        aggregatedValue = groupValues.reduce((sum, val) => sum + Number(val), 0) / groupValues.length;
-                        break;
-                    case 'max':
-                        aggregatedValue = Math.max(...groupValues.map(v => Number(v)));
-                        break;
-                    case 'min':
-                        aggregatedValue = Math.min(...groupValues.map(v => Number(v)));
-                        break;
-                    case 'count':
-                        aggregatedValue = groupValues.length;
-                        break;
-                    default:
-                        aggregatedValue = groupValues.reduce((sum, val) => sum + Number(val), 0);
-                }
+                    if (aggregatedValue !== null && aggregatedValue !== undefined && !isNaN(aggregatedValue)) {
+                        labels.push(key);
+                        values.push(aggregatedValue);
+                    }
+                });
 
-                // Only add if aggregated value is valid
-                if (aggregatedValue !== null && aggregatedValue !== undefined && !isNaN(aggregatedValue)) {
-                    labels.push(key);
-                    values.push(aggregatedValue);
-                }
-            });
+                return { labels, values, datasets: null };
+            } else {
+                // Multi-series - group by both X and Legend columns
+                const groups = {};  // { xValue: { legendValue: [yValues] } }
+                const allLegendValues = new Set();
 
-            return { labels, values };
+                data.forEach(row => {
+                    const xValue = row[xColumn];
+                    const yValue = row[yColumn];
+                    const legendValue = row[legendColumn];
+
+                    if (yValue === null || yValue === undefined || yValue === '' ||
+                        (typeof yValue === 'number' && isNaN(yValue))) {
+                        return;
+                    }
+
+                    if (xValue === null || xValue === undefined || xValue === '') {
+                        return;
+                    }
+
+                    if (legendValue === null || legendValue === undefined || legendValue === '') {
+                        return;
+                    }
+
+                    if (!groups[xValue]) {
+                        groups[xValue] = {};
+                    }
+                    if (!groups[xValue][legendValue]) {
+                        groups[xValue][legendValue] = [];
+                    }
+                    groups[xValue][legendValue].push(yValue);
+                    allLegendValues.add(legendValue);
+                });
+
+                const labels = Object.keys(groups);
+                const legendValues = Array.from(allLegendValues);
+                const datasets = [];
+
+                // Create a dataset for each legend value
+                legendValues.forEach((legendValue, index) => {
+                    const dataValues = labels.map(label => {
+                        const groupValues = groups[label][legendValue] || [];
+                        if (groupValues.length === 0) return 0;
+                        return performAggregation(groupValues, aggregation);
+                    });
+
+                    datasets.push({
+                        label: legendValue,
+                        data: dataValues,
+                        backgroundColor: blueColors[index % blueColors.length],
+                        borderColor: blueColors[index % blueColors.length].replace('0.8', '1'),
+                        borderWidth: 2
+                    });
+                });
+
+                return { labels, values: null, datasets };
+            }
+        }
+
+        // Helper function to perform aggregation
+        function performAggregation(values, aggregation) {
+            if (values.length === 0) return 0;
+
+            switch (aggregation) {
+                case 'sum':
+                    return values.reduce((sum, val) => sum + Number(val), 0);
+                case 'average':
+                    return values.reduce((sum, val) => sum + Number(val), 0) / values.length;
+                case 'max':
+                    return Math.max(...values.map(v => Number(v)));
+                case 'min':
+                    return Math.min(...values.map(v => Number(v)));
+                case 'count':
+                    return values.length;
+                default:
+                    return values.reduce((sum, val) => sum + Number(val), 0);
+            }
         }
 
         // Update chart from grid filtered data
         function updateChartFromGrid() {
             if (!currentChartConfig) return;
 
-            const { chartType, xColumn, yColumn, aggregation } = currentChartConfig;
+            const { chartType, xColumn, yColumn, aggregation, legendColumn } = currentChartConfig;
 
             // Get filtered data from grid
             const filteredData = getFilteredDataFromGrid();
@@ -480,9 +640,9 @@
             }
 
             // Aggregate data
-            const { labels, values } = aggregateData(filteredData, xColumn, yColumn, aggregation);
+            const result = aggregateData(filteredData, xColumn, yColumn, aggregation, legendColumn);
 
-            if (labels.length === 0) {
+            if (result.labels.length === 0) {
                 document.getElementById('chartInfo').textContent = 'No valid data for selected columns. Try different columns or adjust filters.';
                 if (currentChart) {
                     currentChart.destroy();
@@ -492,7 +652,13 @@
             }
 
             // Render chart
-            renderChart(labels, values, chartType, xColumn, yColumn, aggregation);
+            if (result.datasets) {
+                // Multi-series chart
+                renderMultiSeriesChart(result.labels, result.datasets, chartType, xColumn, yColumn, aggregation, legendColumn);
+            } else {
+                // Single series chart
+                renderChart(result.labels, result.values, chartType, xColumn, yColumn, aggregation);
+            }
         }
 
         // Generate chart (triggered by user)
@@ -501,6 +667,7 @@
             const xColumn = document.getElementById('xColumn').value;
             const yColumn = document.getElementById('yColumn').value;
             const aggregation = document.getElementById('aggregation').value;
+            const legendColumn = document.getElementById('legendColumn').value || null;
 
             if (!xColumn || !yColumn) {
                 alert('Please select both X and Y columns');
@@ -508,7 +675,7 @@
             }
 
             // Save chart configuration for real-time updates
-            currentChartConfig = { chartType, xColumn, yColumn, aggregation };
+            currentChartConfig = { chartType, xColumn, yColumn, aggregation, legendColumn };
 
             // Update chart from grid data
             updateChartFromGrid();
@@ -574,6 +741,154 @@
                 `Chart showing ${aggregation} of ${yColumn} by ${xColumn} (${labels.length} data points)`;
         }
 
+        // Render multi-series chart with Chart.js
+        function renderMultiSeriesChart(labels, datasets, chartType, xColumn, yColumn, aggregation, legendColumn) {
+            const ctx = document.getElementById('chartCanvas').getContext('2d');
+
+            // Destroy existing chart
+            if (currentChart) {
+                currentChart.destroy();
+            }
+
+            // Create chart
+            currentChart = new Chart(ctx, {
+                type: chartType,
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        title: {
+                            display: true,
+                            text: `${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart: ${aggregation} of ${yColumn} by ${xColumn} (grouped by ${legendColumn})`,
+                            font: {
+                                size: 16
+                            }
+                        }
+                    },
+                    scales: chartType === 'bar' || chartType === 'line' ? {
+                        y: {
+                            beginAtZero: true
+                        }
+                    } : {}
+                }
+            });
+
+            document.getElementById('chartInfo').textContent =
+                `Chart showing ${aggregation} of ${yColumn} by ${xColumn}, grouped by ${legendColumn} (${labels.length} categories, ${datasets.length} series)`;
+        }
+
+        // Date Range Slider Functions
+        function initializeDateSliders() {
+            const minDate = document.getElementById('minDate').value;
+            const maxDate = document.getElementById('maxDate').value;
+            const startDateSlider = document.getElementById('startDateSlider');
+            const endDateSlider = document.getElementById('endDateSlider');
+
+            if (!minDate || !maxDate) return;
+
+            const minTimestamp = new Date(minDate).getTime();
+            const maxTimestamp = new Date(maxDate).getTime();
+
+            // Set up event listeners
+            startDateSlider.addEventListener('input', function() {
+                const startPercent = parseInt(this.value);
+                const endPercent = parseInt(endDateSlider.value);
+
+                // Prevent start from going past end
+                if (startPercent >= endPercent) {
+                    this.value = endPercent - 1;
+                    return;
+                }
+
+                updateDateFromSlider();
+            });
+
+            endDateSlider.addEventListener('input', function() {
+                const startPercent = parseInt(startDateSlider.value);
+                const endPercent = parseInt(this.value);
+
+                // Prevent end from going before start
+                if (endPercent <= startPercent) {
+                    this.value = startPercent + 1;
+                    return;
+                }
+
+                updateDateFromSlider();
+            });
+
+            // Initialize slider positions
+            updateSliderFromDate();
+        }
+
+        function updateDateFromSlider() {
+            const minDate = document.getElementById('minDate').value;
+            const maxDate = document.getElementById('maxDate').value;
+            const startPercent = parseInt(document.getElementById('startDateSlider').value);
+            const endPercent = parseInt(document.getElementById('endDateSlider').value);
+
+            const minTimestamp = new Date(minDate).getTime();
+            const maxTimestamp = new Date(maxDate).getTime();
+            const totalRange = maxTimestamp - minTimestamp;
+
+            // Calculate dates from percentages
+            const startTimestamp = minTimestamp + (totalRange * startPercent / 100);
+            const endTimestamp = minTimestamp + (totalRange * endPercent / 100);
+
+            const startDate = new Date(startTimestamp).toISOString().split('T')[0];
+            const endDate = new Date(endTimestamp).toISOString().split('T')[0];
+
+            document.getElementById('startDate').value = startDate;
+            document.getElementById('endDate').value = endDate;
+            document.getElementById('startDateDisplay').textContent = startDate;
+            document.getElementById('endDateDisplay').textContent = endDate;
+        }
+
+        function updateSliderFromDate() {
+            const minDate = document.getElementById('minDate').value;
+            const maxDate = document.getElementById('maxDate').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+
+            if (!minDate || !maxDate || !startDate || !endDate) return;
+
+            const minTimestamp = new Date(minDate).getTime();
+            const maxTimestamp = new Date(maxDate).getTime();
+            const startTimestamp = new Date(startDate).getTime();
+            const endTimestamp = new Date(endDate).getTime();
+            const totalRange = maxTimestamp - minTimestamp;
+
+            // Calculate percentages
+            const startPercent = ((startTimestamp - minTimestamp) / totalRange) * 100;
+            const endPercent = ((endTimestamp - minTimestamp) / totalRange) * 100;
+
+            document.getElementById('startDateSlider').value = Math.round(startPercent);
+            document.getElementById('endDateSlider').value = Math.round(endPercent);
+            document.getElementById('startDateDisplay').textContent = startDate;
+            document.getElementById('endDateDisplay').textContent = endDate;
+        }
+
+        function resetDateFilter() {
+            const minDate = document.getElementById('minDate').value;
+            const maxDate = document.getElementById('maxDate').value;
+
+            document.getElementById('startDate').value = minDate;
+            document.getElementById('endDate').value = maxDate;
+            document.getElementById('startDateSlider').value = 0;
+            document.getElementById('endDateSlider').value = 100;
+            document.getElementById('startDateDisplay').textContent = minDate;
+            document.getElementById('endDateDisplay').textContent = maxDate;
+
+            applyDateFilter();
+        }
+
         // Load session state on page load
         async function loadSession() {
             try {
@@ -604,6 +919,9 @@
 
         // Initialize on page load
         window.addEventListener('load', async () => {
+            // Initialize date sliders
+            initializeDateSliders();
+
             await loadSession();
             // If no session, load with default settings
             if (currentData.length === 0) {
