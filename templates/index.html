@@ -213,7 +213,7 @@
         <div class="grid-container">
             <div class="section-title">Data Grid</div>
             <div id="dataGrid" class="ag-theme-alpine"></div>
-            <div class="info-text">You can sort, filter, and search within the grid. Changes here won't affect your column selection or date filter.</div>
+            <div class="info-text">You can sort, filter, and search within the grid. <strong>Grid filters automatically update the chart in real-time!</strong></div>
         </div>
 
         <!-- Chart Controls -->
@@ -281,6 +281,7 @@
         let gridApi;
         let currentChart = null;
         let currentData = [];
+        let currentChartConfig = null;  // Store current chart configuration
 
         // Blue color palette for charts
         const blueColors = [
@@ -304,7 +305,13 @@
             },
             pagination: true,
             paginationPageSize: 20,
-            domLayout: 'normal'
+            domLayout: 'normal',
+            onFilterChanged: function() {
+                // Auto-update chart when grid filters change
+                if (currentChartConfig) {
+                    updateChartFromGrid();
+                }
+            }
         };
 
         const gridDiv = document.querySelector('#dataGrid');
@@ -381,7 +388,114 @@
             await loadData();
         }
 
-        // Generate chart
+        // Get filtered data from AG Grid
+        function getFilteredDataFromGrid() {
+            const filteredData = [];
+            gridApi.forEachNodeAfterFilter(node => {
+                filteredData.push(node.data);
+            });
+            return filteredData;
+        }
+
+        // Aggregate data for chart
+        function aggregateData(data, xColumn, yColumn, aggregation) {
+            const groups = {};
+
+            // Group by X column and collect Y values, skip null/undefined/empty Y values
+            data.forEach(row => {
+                const xValue = row[xColumn];
+                const yValue = row[yColumn];
+
+                // Skip if Y value is null, undefined, empty, or not a number when expected
+                if (yValue === null || yValue === undefined || yValue === '' ||
+                    (typeof yValue === 'number' && isNaN(yValue))) {
+                    return;  // Skip this row
+                }
+
+                // Also skip if X value is null/undefined
+                if (xValue === null || xValue === undefined || xValue === '') {
+                    return;
+                }
+
+                if (!groups[xValue]) {
+                    groups[xValue] = [];
+                }
+                groups[xValue].push(yValue);
+            });
+
+            // Perform aggregation
+            const labels = [];
+            const values = [];
+
+            Object.keys(groups).forEach(key => {
+                const groupValues = groups[key];
+                let aggregatedValue;
+
+                switch (aggregation) {
+                    case 'sum':
+                        aggregatedValue = groupValues.reduce((sum, val) => sum + Number(val), 0);
+                        break;
+                    case 'average':
+                        aggregatedValue = groupValues.reduce((sum, val) => sum + Number(val), 0) / groupValues.length;
+                        break;
+                    case 'max':
+                        aggregatedValue = Math.max(...groupValues.map(v => Number(v)));
+                        break;
+                    case 'min':
+                        aggregatedValue = Math.min(...groupValues.map(v => Number(v)));
+                        break;
+                    case 'count':
+                        aggregatedValue = groupValues.length;
+                        break;
+                    default:
+                        aggregatedValue = groupValues.reduce((sum, val) => sum + Number(val), 0);
+                }
+
+                // Only add if aggregated value is valid
+                if (aggregatedValue !== null && aggregatedValue !== undefined && !isNaN(aggregatedValue)) {
+                    labels.push(key);
+                    values.push(aggregatedValue);
+                }
+            });
+
+            return { labels, values };
+        }
+
+        // Update chart from grid filtered data
+        function updateChartFromGrid() {
+            if (!currentChartConfig) return;
+
+            const { chartType, xColumn, yColumn, aggregation } = currentChartConfig;
+
+            // Get filtered data from grid
+            const filteredData = getFilteredDataFromGrid();
+
+            if (filteredData.length === 0) {
+                document.getElementById('chartInfo').textContent = 'No data to display. Adjust your filters.';
+                if (currentChart) {
+                    currentChart.destroy();
+                    currentChart = null;
+                }
+                return;
+            }
+
+            // Aggregate data
+            const { labels, values } = aggregateData(filteredData, xColumn, yColumn, aggregation);
+
+            if (labels.length === 0) {
+                document.getElementById('chartInfo').textContent = 'No valid data for selected columns. Try different columns or adjust filters.';
+                if (currentChart) {
+                    currentChart.destroy();
+                    currentChart = null;
+                }
+                return;
+            }
+
+            // Render chart
+            renderChart(labels, values, chartType, xColumn, yColumn, aggregation);
+        }
+
+        // Generate chart (triggered by user)
         async function generateChart() {
             const chartType = document.getElementById('chartType').value;
             const xColumn = document.getElementById('xColumn').value;
@@ -393,36 +507,11 @@
                 return;
             }
 
-            const startDate = document.getElementById('startDate').value;
-            const endDate = document.getElementById('endDate').value;
+            // Save chart configuration for real-time updates
+            currentChartConfig = { chartType, xColumn, yColumn, aggregation };
 
-            try {
-                const response = await fetch('/api/chart-data', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        chart_type: chartType,
-                        x_column: xColumn,
-                        y_column: yColumn,
-                        aggregation: aggregation,
-                        start_date: startDate,
-                        end_date: endDate
-                    })
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    renderChart(result.labels, result.values, chartType, xColumn, yColumn, aggregation);
-                } else {
-                    alert('Error generating chart: ' + result.error);
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Failed to generate chart');
-            }
+            // Update chart from grid data
+            updateChartFromGrid();
         }
 
         // Render chart with Chart.js
