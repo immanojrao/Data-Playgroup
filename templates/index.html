@@ -456,8 +456,13 @@
                     gridApi.setGridOption('columnDefs', columnDefs);
                     gridApi.setGridOption('rowData', result.data);
 
-                    // Update chart column dropdowns
+                    // Update chart column dropdowns (preserves selections)
                     updateChartColumns(result.columns);
+
+                    // Update chart if one was already generated
+                    if (currentChartConfig) {
+                        updateChartFromGrid();
+                    }
                 } else {
                     alert('Error loading data: ' + result.error);
                 }
@@ -467,12 +472,22 @@
             }
         }
 
-        // Update chart column dropdowns
+        // Update chart column dropdowns (preserving current selections)
         function updateChartColumns(columns) {
             const xColumn = document.getElementById('xColumn');
             const yColumn = document.getElementById('yColumn');
             const legendColumn = document.getElementById('legendColumn');
+            const chartType = document.getElementById('chartType');
+            const aggregation = document.getElementById('aggregation');
 
+            // Save current selections
+            const savedXColumn = xColumn.value;
+            const savedYColumn = yColumn.value;
+            const savedLegendColumn = legendColumn.value;
+            const savedChartType = chartType.value;
+            const savedAggregation = aggregation.value;
+
+            // Rebuild dropdowns
             xColumn.innerHTML = '<option value="">Select column...</option>';
             yColumn.innerHTML = '<option value="">Select column...</option>';
             legendColumn.innerHTML = '<option value="">None - Single Series</option>';
@@ -482,6 +497,20 @@
                 yColumn.innerHTML += `<option value="${col}">${col}</option>`;
                 legendColumn.innerHTML += `<option value="${col}">${col}</option>`;
             });
+
+            // Restore selections if the columns still exist
+            if (savedXColumn && columns.includes(savedXColumn)) {
+                xColumn.value = savedXColumn;
+            }
+            if (savedYColumn && columns.includes(savedYColumn)) {
+                yColumn.value = savedYColumn;
+            }
+            if (savedLegendColumn && (savedLegendColumn === '' || columns.includes(savedLegendColumn))) {
+                legendColumn.value = savedLegendColumn;
+            }
+            // Chart type and aggregation don't need column validation
+            chartType.value = savedChartType;
+            aggregation.value = savedAggregation;
         }
 
         // Export grid data to CSV
