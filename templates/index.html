@@ -3,15 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Excel Data Analyzer with AG Grid & Flask</title>
+    <title>Data Analysis Dashboard</title>
 
     <!-- AG Grid CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.0.0/styles/ag-grid.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.0.0/styles/ag-theme-alpine.css">
-
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
 
     <style>
         * {
@@ -22,412 +18,281 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
             padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
         }
 
         .container {
-            max-width: 1600px;
+            max-width: 1400px;
             margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
         }
 
         h1 {
-            color: #333;
-            margin-bottom: 10px;
-            font-size: 32px;
-        }
-
-        .subtitle {
-            color: #666;
+            color: #2c3e50;
             margin-bottom: 30px;
-            font-size: 14px;
+            text-align: center;
         }
 
-        .section {
-            margin-bottom: 35px;
-            padding: 20px;
-            background: #f9f9f9;
-            border-radius: 8px;
-            border-left: 4px solid #667eea;
-        }
-
-        .section-title {
-            font-size: 20px;
-            font-weight: bold;
-            margin-bottom: 15px;
-            color: #444;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .step-badge {
-            background: #667eea;
-            color: white;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-            font-weight: bold;
-        }
-
-        .column-selector {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-
-        .column-checkbox {
-            display: flex;
-            align-items: center;
-            padding: 8px 12px;
+        .controls {
             background: white;
-            border: 2px solid #e0e0e0;
-            border-radius: 6px;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #34495e;
+        }
+
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            font-weight: normal;
             cursor: pointer;
-            transition: all 0.3s;
+            padding: 5px;
         }
 
-        .column-checkbox:hover {
-            border-color: #667eea;
-            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
-        }
-
-        .column-checkbox input {
+        .checkbox-group input[type="checkbox"] {
             margin-right: 8px;
             cursor: pointer;
         }
 
-        .column-checkbox input:checked + span {
-            color: #667eea;
-            font-weight: 600;
-        }
-
-        /* Slicers Styling */
-        .slicers-container {
+        .date-filter {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: 1fr 1fr auto;
             gap: 15px;
-            margin-top: 15px;
+            align-items: end;
         }
 
-        .slicer {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            border: 2px solid #e0e0e0;
-        }
-
-        .slicer-title {
-            font-weight: 600;
-            margin-bottom: 10px;
-            color: #444;
-            font-size: 14px;
-        }
-
-        .slicer-options {
-            max-height: 200px;
-            overflow-y: auto;
+        .date-filter input {
+            padding: 10px;
             border: 1px solid #ddd;
             border-radius: 4px;
-            padding: 8px;
-            background: #fafafa;
-        }
-
-        .slicer-option {
-            display: flex;
-            align-items: center;
-            padding: 6px 8px;
-            cursor: pointer;
-            border-radius: 4px;
-            transition: background 0.2s;
-        }
-
-        .slicer-option:hover {
-            background: #e8e8e8;
-        }
-
-        .slicer-option input {
-            margin-right: 8px;
-        }
-
-        .slicer-option label {
-            cursor: pointer;
-            font-size: 13px;
-            margin: 0;
-            flex: 1;
-        }
-
-        .button-group {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
+            font-size: 14px;
         }
 
         button {
-            padding: 12px 24px;
-            background: #667eea;
+            background: #3498db;
             color: white;
             border: none;
-            border-radius: 6px;
+            padding: 10px 20px;
+            border-radius: 4px;
             cursor: pointer;
             font-size: 14px;
             font-weight: 600;
-            transition: all 0.3s;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: background 0.3s;
         }
 
         button:hover {
-            background: #5568d3;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            background: #2980b9;
         }
 
-        button:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-            transform: none;
+        button:active {
+            transform: scale(0.98);
         }
 
-        button.secondary {
-            background: #6c757d;
+        .grid-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
         }
 
-        button.secondary:hover {
-            background: #5a6268;
-        }
-
-        #myGrid {
+        #dataGrid {
             height: 500px;
             width: 100%;
-            margin-bottom: 20px;
         }
 
         .chart-controls {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .chart-controls-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 15px;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
-        .form-group {
-            display: flex;
-            flex-direction: column;
-        }
-
-        label {
-            margin-bottom: 5px;
-            font-weight: 600;
-            color: #555;
-            font-size: 13px;
-        }
-
-        select {
+        .chart-controls select {
             padding: 10px;
-            border: 2px solid #e0e0e0;
-            border-radius: 6px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
             font-size: 14px;
-            cursor: pointer;
-            transition: border-color 0.3s;
-        }
-
-        select:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        /* Scrollable Chart Container */
-        .chart-wrapper {
-            overflow-x: auto;
-            overflow-y: hidden;
-            margin-bottom: 20px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            padding: 20px;
-            background: white;
+            width: 100%;
         }
 
         .chart-container {
-            min-width: 100%;
-            position: relative;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
         #chartCanvas {
-            display: block;
             max-height: 500px;
         }
 
-        .info-box {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            color: white;
-            font-weight: 500;
+        .info-text {
+            color: #7f8c8d;
+            font-size: 14px;
+            margin-top: 10px;
         }
 
-        .checkbox-label {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            cursor: pointer;
-        }
-
-        .checkbox-label input {
-            cursor: pointer;
+        .section-title {
+            font-size: 18px;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #3498db;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <div>
-                <h1 style="margin-bottom: 5px;">📊 Excel Data Analyzer with Flask + AG Grid</h1>
-                <p class="subtitle">Simple and powerful data visualization with column selection, multiple slicers, and dynamic charting</p>
-            </div>
-            <div style="text-align: right;">
-                <p style="color: #666; margin-bottom: 8px;">Welcome, <strong>{{ username }}</strong></p>
-                <a href="/logout" style="padding: 8px 16px; background: #6c757d; color: white; text-decoration: none; border-radius: 4px; font-size: 14px; display: inline-block;">Logout</a>
+        <h1>📊 Data Analysis Dashboard</h1>
+
+        <!-- Column Selection -->
+        <div class="controls">
+            <div class="control-group">
+                <div class="section-title">Select Columns to Display</div>
+                <div class="checkbox-group" id="columnSelector">
+                    {% for column in columns %}
+                    <label>
+                        <input type="checkbox" value="{{ column }}" checked>
+                        {{ column }}
+                    </label>
+                    {% endfor %}
+                </div>
+                <button onclick="loadData()" style="margin-top: 15px;">Load Data</button>
             </div>
         </div>
 
-        <!-- Step 1: Column Selection -->
-        <div class="section">
-            <div class="section-title">
-                <span class="step-badge">1</span>
-                Select Columns to Display
-            </div>
-            <div class="column-selector" id="columnSelector">
-                {% for column in columns %}
-                <label class="column-checkbox">
-                    <input type="checkbox" value="{{ column }}" checked>
-                    <span>{{ column }}</span>
-                </label>
-                {% endfor %}
-            </div>
-            <div class="button-group">
-                <button onclick="loadData()">Load Selected Columns</button>
-                <button class="secondary" onclick="selectAll()">Select All</button>
-                <button class="secondary" onclick="deselectAll()">Deselect All</button>
+        <!-- Date Filter -->
+        <div class="controls">
+            <div class="control-group">
+                <div class="section-title">Date Filter</div>
+                <div class="date-filter">
+                    <div>
+                        <label>Start Date</label>
+                        <input type="date" id="startDate" value="{{ min_date }}" min="{{ min_date }}" max="{{ max_date }}">
+                    </div>
+                    <div>
+                        <label>End Date</label>
+                        <input type="date" id="endDate" value="{{ max_date }}" min="{{ min_date }}" max="{{ max_date }}">
+                    </div>
+                    <button onclick="applyDateFilter()">Apply Filter</button>
+                </div>
+                <div class="info-text">Date filter applies to both grid and charts</div>
             </div>
         </div>
 
-        <!-- Step 1.5: Slicers for Advanced Filtering -->
-        <div class="section">
-            <div class="section-title">
-                <span class="step-badge">1.5</span>
-                Advanced Filters (Slicers)
-            </div>
-            <div class="info-box">
-                Select specific values from each column to filter your data. Multiple selections within a slicer are combined with OR logic.
-            </div>
-            <div class="button-group">
-                <button onclick="initializeSlicers()">Initialize Slicers</button>
-                <button class="secondary" onclick="applySlicerFilters()">Apply Filters</button>
-                <button class="secondary" onclick="clearAllSlicers()">Clear All Filters</button>
-            </div>
-            <div id="slicersContainer" class="slicers-container">
-                <!-- Slicers will be dynamically generated here -->
-            </div>
+        <!-- Data Grid -->
+        <div class="grid-container">
+            <div class="section-title">Data Grid</div>
+            <div id="dataGrid" class="ag-theme-alpine"></div>
+            <div class="info-text">You can sort, filter, and search within the grid. Changes here won't affect your column selection or date filter.</div>
         </div>
 
-        <!-- Step 2: Data Grid -->
-        <div class="section">
-            <div class="section-title">
-                <span class="step-badge">2</span>
-                View and Filter Data
-            </div>
-            <div id="myGrid" class="ag-theme-alpine"></div>
-        </div>
-
-        <!-- Step 3: Chart Creation -->
-        <div class="section">
-            <div class="section-title">
-                <span class="step-badge">3</span>
-                Create Dynamic Charts from Filtered Data
-            </div>
-            <div class="info-box">
-                Charts automatically skip null and zero values. For large datasets, charts become scrollable horizontally to maintain bar width.
-            </div>
-
-            <div class="chart-controls">
-                <div class="form-group">
-                    <label for="chartType">Chart Type:</label>
-                    <select id="chartType" onchange="handleChartTypeChange()">
+        <!-- Chart Controls -->
+        <div class="chart-controls">
+            <div class="section-title">Chart Configuration</div>
+            <div class="chart-controls-grid">
+                <div>
+                    <label>Chart Type</label>
+                    <select id="chartType">
                         <option value="bar">Bar Chart</option>
                         <option value="line">Line Chart</option>
                         <option value="pie">Pie Chart</option>
-                        <option value="scatter">Scatter Plot</option>
                         <option value="doughnut">Doughnut Chart</option>
-                        <option value="area">Area Chart</option>
-                        <option value="horizontalBar">Horizontal Bar</option>
+                        <option value="radar">Radar Chart</option>
+                        <option value="polarArea">Polar Area Chart</option>
                     </select>
                 </div>
-
-                <div class="form-group">
-                    <label for="xColumn">X-Axis Column:</label>
-                    <select id="xColumn"></select>
+                <div>
+                    <label>X-Axis Column</label>
+                    <select id="xColumn">
+                        <option value="">Select column...</option>
+                        {% for column in columns %}
+                        <option value="{{ column }}">{{ column }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
-
-                <div class="form-group">
-                    <label for="yColumn">Y-Axis Column:</label>
-                    <select id="yColumn"></select>
+                <div>
+                    <label>Y-Axis Column</label>
+                    <select id="yColumn">
+                        <option value="">Select column...</option>
+                        {% for column in columns %}
+                        <option value="{{ column }}">{{ column }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
-
-                <div class="form-group">
-                    <label for="aggregation">Aggregation Method:</label>
+                <div>
+                    <label>Aggregation</label>
                     <select id="aggregation">
                         <option value="sum">Sum</option>
                         <option value="average">Average</option>
-                        <option value="count">Count</option>
-                        <option value="min">Minimum</option>
                         <option value="max">Maximum</option>
+                        <option value="min">Minimum</option>
+                        <option value="count">Count</option>
                     </select>
                 </div>
-
-                <div class="form-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="groupData" checked>
-                        Group by X-Axis
-                    </label>
-                </div>
-
-                <div class="form-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="skipNullZero" checked>
-                        Skip Null & Zero Values
-                    </label>
-                </div>
             </div>
+            <button onclick="generateChart()">Generate Chart</button>
+        </div>
 
-            <button onclick="createChart()" style="margin-bottom: 20px;">Generate Chart</button>
-
-            <div class="chart-wrapper" id="chartWrapper">
-                <div class="chart-container" id="chartContainer">
-                    <canvas id="chartCanvas"></canvas>
-                </div>
-            </div>
+        <!-- Chart Display -->
+        <div class="chart-container">
+            <div class="section-title">Chart</div>
+            <canvas id="chartCanvas"></canvas>
+            <div class="info-text" id="chartInfo">Configure and generate a chart using the controls above</div>
         </div>
     </div>
 
-    <!-- AG Grid JS -->
+    <!-- AG Grid JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@31.0.0/dist/ag-grid-community.min.js"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
     <script>
         let gridApi;
         let currentChart = null;
-        let currentColumns = [];
-        let slicersData = {};
+        let currentData = [];
+
+        // Blue color palette for charts
+        const blueColors = [
+            'rgba(52, 152, 219, 0.8)',   // Main blue
+            'rgba(41, 128, 185, 0.8)',   // Darker blue
+            'rgba(93, 173, 226, 0.8)',   // Light blue
+            'rgba(46, 134, 193, 0.8)',   // Medium blue
+            'rgba(30, 139, 195, 0.8)',   // Deep blue
+            'rgba(133, 193, 233, 0.8)',  // Sky blue
+            'rgba(21, 101, 192, 0.8)',   // Navy blue
+            'rgba(100, 181, 246, 0.8)'   // Bright blue
+        ];
 
         // Initialize AG Grid
         const gridOptions = {
@@ -435,448 +300,226 @@
                 sortable: true,
                 filter: true,
                 resizable: true,
-                floatingFilter: true,
+                floatingFilter: true
             },
             pagination: true,
             paginationPageSize: 20,
-            rowSelection: 'multiple',
-            onFilterChanged: updateChartColumnOptions
+            domLayout: 'normal'
         };
 
-        // Load data with selected columns
+        const gridDiv = document.querySelector('#dataGrid');
+        gridApi = agGrid.createGrid(gridDiv, gridOptions);
+
+        // Load data from API
         async function loadData() {
-            const checkboxes = document.querySelectorAll('#columnSelector input[type="checkbox"]:checked');
-            const selectedColumns = Array.from(checkboxes).map(cb => cb.value);
+            const selectedColumns = Array.from(document.querySelectorAll('#columnSelector input:checked'))
+                .map(cb => cb.value);
 
             if (selectedColumns.length === 0) {
                 alert('Please select at least one column');
                 return;
             }
 
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+
             try {
-                const response = await fetch('/get_data', {
+                const response = await fetch('/api/data', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({columns: selectedColumns})
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        columns: selectedColumns,
+                        start_date: startDate,
+                        end_date: endDate
+                    })
                 });
 
                 const result = await response.json();
-                currentColumns = result.columns;
 
-                // Create column definitions
-                const columnDefs = result.columns.map(col => ({
-                    field: col,
-                    headerName: col
-                }));
+                if (result.success) {
+                    currentData = result.data;
 
-                // Initialize or update grid
-                const gridDiv = document.querySelector('#myGrid');
-                if (!gridApi) {
-                    gridApi = agGrid.createGrid(gridDiv, gridOptions);
-                }
+                    // Create column definitions
+                    const columnDefs = result.columns.map(col => ({
+                        field: col,
+                        headerName: col
+                    }));
 
-                gridApi.setGridOption('columnDefs', columnDefs);
-                gridApi.setGridOption('rowData', result.data);
+                    // Update grid
+                    gridApi.setGridOption('columnDefs', columnDefs);
+                    gridApi.setGridOption('rowData', result.data);
 
-                // Update chart column dropdowns
-                updateChartColumnOptions();
-
-            } catch (error) {
-                console.error('Error loading data:', error);
-                alert('Error loading data');
-            }
-        }
-
-        // Initialize slicers with unique values from selected columns
-        async function initializeSlicers() {
-            const checkboxes = document.querySelectorAll('#columnSelector input[type="checkbox"]:checked');
-            const selectedColumns = Array.from(checkboxes).map(cb => cb.value);
-
-            if (selectedColumns.length === 0) {
-                alert('Please select columns first');
-                return;
-            }
-
-            const slicersContainer = document.getElementById('slicersContainer');
-            slicersContainer.innerHTML = '<p style="padding: 20px; text-align: center;">Loading slicers...</p>';
-
-            slicersData = {};
-
-            // Create slicers for the first 5 columns (or all if less than 5)
-            const columnsForSlicers = selectedColumns.slice(0, Math.max(5, selectedColumns.length));
-
-            try {
-                // Fetch unique values for each column
-                for (const column of columnsForSlicers) {
-                    const response = await fetch('/get_unique_values', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({column: column})
-                    });
-
-                    const result = await response.json();
-                    slicersData[column] = result.uniqueValues;
-                }
-
-                // Render slicers
-                renderSlicers();
-
-            } catch (error) {
-                console.error('Error initializing slicers:', error);
-                alert('Error loading slicer data');
-            }
-        }
-
-        // Render slicers UI
-        function renderSlicers() {
-            const slicersContainer = document.getElementById('slicersContainer');
-            slicersContainer.innerHTML = '';
-
-            Object.keys(slicersData).forEach(column => {
-                const slicerDiv = document.createElement('div');
-                slicerDiv.className = 'slicer';
-
-                const title = document.createElement('div');
-                title.className = 'slicer-title';
-                title.textContent = column;
-                slicerDiv.appendChild(title);
-
-                const optionsDiv = document.createElement('div');
-                optionsDiv.className = 'slicer-options';
-
-                slicersData[column].forEach(value => {
-                    const optionDiv = document.createElement('div');
-                    optionDiv.className = 'slicer-option';
-
-                    const checkbox = document.createElement('input');
-                    checkbox.type = 'checkbox';
-                    checkbox.value = value;
-                    checkbox.id = `slicer-${column}-${value}`;
-                    checkbox.dataset.column = column;
-
-                    const label = document.createElement('label');
-                    label.htmlFor = checkbox.id;
-                    label.textContent = value;
-
-                    optionDiv.appendChild(checkbox);
-                    optionDiv.appendChild(label);
-                    optionsDiv.appendChild(optionDiv);
-                });
-
-                slicerDiv.appendChild(optionsDiv);
-                slicersContainer.appendChild(slicerDiv);
-            });
-        }
-
-        // Apply slicer filters to AG Grid
-        function applySlicerFilters() {
-            if (!gridApi) {
-                alert('Please load data first');
-                return;
-            }
-
-            // Get all checked slicer values grouped by column
-            const filtersByColumn = {};
-
-            document.querySelectorAll('.slicer-option input:checked').forEach(checkbox => {
-                const column = checkbox.dataset.column;
-                const value = checkbox.value;
-
-                if (!filtersByColumn[column]) {
-                    filtersByColumn[column] = [];
-                }
-                filtersByColumn[column].push(value);
-            });
-
-            // Apply filters to AG Grid
-            Object.keys(slicersData).forEach(column => {
-                const filterInstance = gridApi.getColumnFilterInstance(column);
-
-                if (filtersByColumn[column] && filtersByColumn[column].length > 0) {
-                    // Set filter to include only selected values
-                    filterInstance.setModel({
-                        filterType: 'set',
-                        values: filtersByColumn[column]
-                    });
+                    // Update chart column dropdowns
+                    updateChartColumns(result.columns);
                 } else {
-                    // Clear filter for this column
-                    filterInstance.setModel(null);
+                    alert('Error loading data: ' + result.error);
                 }
-            });
-
-            gridApi.onFilterChanged();
-        }
-
-        // Clear all slicer filters
-        function clearAllSlicers() {
-            document.querySelectorAll('.slicer-option input').forEach(checkbox => {
-                checkbox.checked = false;
-            });
-
-            if (gridApi) {
-                gridApi.setFilterModel(null);
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to load data');
             }
         }
 
         // Update chart column dropdowns
-        function updateChartColumnOptions() {
-            const xSelect = document.getElementById('xColumn');
-            const ySelect = document.getElementById('yColumn');
+        function updateChartColumns(columns) {
+            const xColumn = document.getElementById('xColumn');
+            const yColumn = document.getElementById('yColumn');
 
-            xSelect.innerHTML = '';
-            ySelect.innerHTML = '';
+            xColumn.innerHTML = '<option value="">Select column...</option>';
+            yColumn.innerHTML = '<option value="">Select column...</option>';
 
-            currentColumns.forEach(col => {
-                xSelect.add(new Option(col, col));
-                ySelect.add(new Option(col, col));
+            columns.forEach(col => {
+                xColumn.innerHTML += `<option value="${col}">${col}</option>`;
+                yColumn.innerHTML += `<option value="${col}">${col}</option>`;
             });
         }
 
-        // Handle chart type changes
-        function handleChartTypeChange() {
-            // Can add specific logic for different chart types if needed
+        // Apply date filter
+        async function applyDateFilter() {
+            await loadData();
         }
 
-        // Create chart from filtered data
-        async function createChart() {
+        // Generate chart
+        async function generateChart() {
             const chartType = document.getElementById('chartType').value;
             const xColumn = document.getElementById('xColumn').value;
             const yColumn = document.getElementById('yColumn').value;
             const aggregation = document.getElementById('aggregation').value;
-            const shouldGroup = document.getElementById('groupData').checked;
-            const skipNullZero = document.getElementById('skipNullZero').checked;
 
             if (!xColumn || !yColumn) {
-                alert('Please select X and Y columns');
+                alert('Please select both X and Y columns');
                 return;
             }
 
-            // Get filtered data from AG Grid
-            const filteredData = [];
-            gridApi.forEachNodeAfterFilter(node => {
-                filteredData.push(node.data);
-            });
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
 
-            if (filteredData.length === 0) {
-                alert('No data available after filtering');
-                return;
+            try {
+                const response = await fetch('/api/chart-data', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        chart_type: chartType,
+                        x_column: xColumn,
+                        y_column: yColumn,
+                        aggregation: aggregation,
+                        start_date: startDate,
+                        end_date: endDate
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    renderChart(result.labels, result.values, chartType, xColumn, yColumn, aggregation);
+                } else {
+                    alert('Error generating chart: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to generate chart');
             }
+        }
 
-            // Process data
-            let xValues, yValues;
-
-            if (shouldGroup) {
-                const aggregated = aggregateData(filteredData, xColumn, yColumn, aggregation, skipNullZero);
-                xValues = aggregated.x;
-                yValues = aggregated.y;
-            } else {
-                const processed = processData(filteredData, xColumn, yColumn, skipNullZero);
-                xValues = processed.x;
-                yValues = processed.y;
-            }
+        // Render chart with Chart.js
+        function renderChart(labels, values, chartType, xColumn, yColumn, aggregation) {
+            const ctx = document.getElementById('chartCanvas').getContext('2d');
 
             // Destroy existing chart
             if (currentChart) {
                 currentChart.destroy();
             }
 
-            // Calculate dynamic width for scrollable chart
-            const minBarWidth = 40; // minimum width per bar in pixels
-            const calculatedWidth = Math.max(800, xValues.length * minBarWidth);
-
-            // Set canvas width for horizontal scrolling
-            const chartContainer = document.getElementById('chartContainer');
-            const canvas = document.getElementById('chartCanvas');
-
-            if (chartType === 'bar' || chartType === 'horizontalBar') {
-                chartContainer.style.width = calculatedWidth + 'px';
-                canvas.width = calculatedWidth;
+            // Prepare dataset colors
+            let backgroundColor, borderColor;
+            if (chartType === 'pie' || chartType === 'doughnut' || chartType === 'polarArea') {
+                backgroundColor = labels.map((_, i) => blueColors[i % blueColors.length]);
+                borderColor = backgroundColor.map(c => c.replace('0.8', '1'));
             } else {
-                chartContainer.style.width = '100%';
-                canvas.width = 800;
+                backgroundColor = blueColors[0];
+                borderColor = blueColors[1];
             }
-
-            const ctx = canvas.getContext('2d');
 
             // Create chart
-            createBasicChart(ctx, chartType, xValues, yValues, xColumn, yColumn);
-        }
-
-        // Process data without grouping
-        function processData(data, xCol, yCol, skipNullZero) {
-            const xValues = [];
-            const yValues = [];
-
-            data.forEach(row => {
-                const xVal = row[xCol];
-                const yVal = parseFloat(row[yCol]);
-
-                // Skip null/zero values if option is enabled
-                if (skipNullZero && (yVal === null || yVal === undefined || yVal === 0 || isNaN(yVal))) {
-                    return;
-                }
-
-                xValues.push(xVal);
-                yValues.push(yVal);
-            });
-
-            return { x: xValues, y: yValues };
-        }
-
-        // Aggregate data by X column
-        function aggregateData(data, xCol, yCol, aggMethod, skipNullZero) {
-            const grouped = {};
-
-            // Group data by X column
-            data.forEach(row => {
-                const key = row[xCol];
-                const yVal = parseFloat(row[yCol]);
-
-                // Skip null/zero values if option is enabled (before aggregation)
-                if (skipNullZero && (yVal === null || yVal === undefined || yVal === 0 || isNaN(yVal))) {
-                    return;
-                }
-
-                if (!grouped[key]) {
-                    grouped[key] = [];
-                }
-
-                if (!isNaN(yVal)) {
-                    grouped[key].push(yVal);
-                }
-            });
-
-            // Apply aggregation function
-            const result = { x: [], y: [] };
-
-            Object.keys(grouped).forEach(key => {
-                // Skip if no valid values after filtering
-                if (grouped[key].length === 0) {
-                    return;
-                }
-
-                const aggregatedValue = applyAggregation(grouped[key], aggMethod);
-
-                // Skip if aggregated value is zero (when skipNullZero is enabled)
-                if (skipNullZero && aggregatedValue === 0) {
-                    return;
-                }
-
-                result.x.push(key);
-                result.y.push(aggregatedValue);
-            });
-
-            return result;
-        }
-
-        // Apply aggregation method to array
-        function applyAggregation(arr, method) {
-            if (arr.length === 0) return 0;
-
-            switch(method) {
-                case 'sum':
-                    return arr.reduce((a, b) => a + b, 0);
-                case 'average':
-                    return arr.reduce((a, b) => a + b, 0) / arr.length;
-                case 'count':
-                    return arr.length;
-                case 'min':
-                    return Math.min(...arr);
-                case 'max':
-                    return Math.max(...arr);
-                default:
-                    return arr.reduce((a, b) => a + b, 0);
-            }
-        }
-
-        // Create basic chart
-        function createBasicChart(ctx, type, xValues, yValues, xColumn, yColumn) {
-            const isHorizontal = type === 'horizontalBar';
-            const actualType = isHorizontal ? 'bar' : type;
-
             currentChart = new Chart(ctx, {
-                type: actualType,
+                type: chartType,
                 data: {
-                    labels: xValues,
+                    labels: labels,
                     datasets: [{
-                        label: yColumn,
-                        data: yValues,
-                        backgroundColor: getColors(xValues.length, 0.6),
-                        borderColor: getColors(xValues.length, 1),
-                        borderWidth: 2,
-                        tension: 0.4
+                        label: `${aggregation} of ${yColumn}`,
+                        data: values,
+                        backgroundColor: backgroundColor,
+                        borderColor: borderColor,
+                        borderWidth: 2
                     }]
                 },
                 options: {
-                    indexAxis: isHorizontal ? 'y' : 'x',
                     responsive: true,
                     maintainAspectRatio: true,
                     plugins: {
-                        title: {
-                            display: true,
-                            text: `${yColumn} by ${xColumn}`,
-                            font: { size: 18, weight: 'bold' }
-                        },
                         legend: {
                             display: true,
                             position: 'top'
                         },
-                        zoom: {
-                            zoom: {
-                                wheel: { enabled: true },
-                                pinch: { enabled: true },
-                                mode: 'x',
-                            },
-                            pan: {
-                                enabled: true,
-                                mode: 'x',
+                        title: {
+                            display: true,
+                            text: `${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart: ${aggregation} of ${yColumn} by ${xColumn}`,
+                            font: {
+                                size: 16
                             }
                         }
                     },
-                    scales: type !== 'pie' && type !== 'doughnut' ? {
+                    scales: chartType === 'bar' || chartType === 'line' ? {
                         y: {
-                            beginAtZero: true,
-                            title: { display: true, text: isHorizontal ? xColumn : yColumn }
-                        },
-                        x: {
-                            title: { display: true, text: isHorizontal ? yColumn : xColumn }
+                            beginAtZero: true
                         }
                     } : {}
                 }
             });
+
+            document.getElementById('chartInfo').textContent =
+                `Chart showing ${aggregation} of ${yColumn} by ${xColumn} (${labels.length} data points)`;
         }
 
-        // Helper: Generate color palette
-        function getColors(count, alpha) {
-            const baseColors = [
-                [102, 126, 234], [118, 75, 162], [255, 99, 132],
-                [54, 162, 235], [255, 206, 86], [75, 192, 192],
-                [153, 102, 255], [255, 159, 64], [199, 199, 199],
-                [83, 102, 255], [255, 99, 255], [99, 255, 132]
-            ];
+        // Load session state on page load
+        async function loadSession() {
+            try {
+                const response = await fetch('/api/session');
+                const data = await response.json();
 
-            return Array(count).fill(0).map((_, i) => {
-                const color = baseColors[i % baseColors.length];
-                return `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${alpha})`;
-            });
+                if (data.selected_columns && data.selected_columns.length > 0) {
+                    // Restore column selection
+                    document.querySelectorAll('#columnSelector input').forEach(cb => {
+                        cb.checked = data.selected_columns.includes(cb.value);
+                    });
+
+                    // Restore date filter
+                    if (data.start_date) {
+                        document.getElementById('startDate').value = data.start_date;
+                    }
+                    if (data.end_date) {
+                        document.getElementById('endDate').value = data.end_date;
+                    }
+
+                    // Load data with saved settings
+                    await loadData();
+                }
+            } catch (error) {
+                console.error('Error loading session:', error);
+            }
         }
 
-        // Column selection helpers
-        function selectAll() {
-            document.querySelectorAll('#columnSelector input[type="checkbox"]').forEach(cb => {
-                cb.checked = true;
-            });
-        }
-
-        function deselectAll() {
-            document.querySelectorAll('#columnSelector input[type="checkbox"]').forEach(cb => {
-                cb.checked = false;
-            });
-        }
-
-        // Load data on page load
-        window.addEventListener('DOMContentLoaded', () => {
-            loadData();
+        // Initialize on page load
+        window.addEventListener('load', async () => {
+            await loadSession();
+            // If no session, load with default settings
+            if (currentData.length === 0) {
+                await loadData();
+            }
         });
     </script>
 </body>

@@ -1,208 +1,139 @@
-from flask import Flask, request, jsonify, session
-from flask_cors import CORS
+from flask import Flask, render_template, request, jsonify, session
 import pandas as pd
 import os
-from functools import wraps
-from werkzeug.security import check_password_hash, generate_password_hash
-import secrets
+from datetime import datetime
 
 app = Flask(__name__)
+app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-change-in-production')
 
-# =============================================================================
-# CORS Configuration for React Frontend
-# =============================================================================
-CORS(app, supports_credentials=True, origins=['http://localhost:3000', 'http://localhost:5000'])
-
-# =============================================================================
-# SECURITY CONFIGURATION
-# =============================================================================
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', secrets.token_hex(32))
-app.config['SESSION_COOKIE_SECURE'] = False  # Set to True if using HTTPS
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['PERMANENT_SESSION_LIFETIME'] = 3600
-
-# =============================================================================
-# USER DATABASE
-# =============================================================================
-USERS = {
-    'admin': {
-        'password': generate_password_hash('admin123'),
-        'role': 'admin',
-        'name': 'Administrator'
-    },
-    'user1': {
-        'password': generate_password_hash('user123'),
-        'role': 'user',
-        'name': 'Regular User'
-    }
-}
-
-# =============================================================================
-# DATA LOADING
-# =============================================================================
-df = None
+# Path to Excel file
+DATA_FILE = 'data.xlsx'
 
 def load_data():
-    """Load Excel data once and cache it"""
-    global df
-    if df is None:
-        try:
-            data_file = os.environ.get('DATA_FILE', 'data.xlsx')
-            df = pd.read_excel(data_file)
-            app.logger.info(f"Loaded data from {data_file}: {df.shape[0]} rows, {df.shape[1]} columns")
-        except FileNotFoundError:
-            app.logger.warning("Data file not found, creating sample data")
-            df = pd.DataFrame({
-                'Name': ['Alice', 'Bob', 'Charlie', 'David', 'Eve', 'Frank', 'Grace', 'Henry'],
-                'Age': [25, 30, 35, 40, 45, 28, 33, 38],
-                'Department': ['IT', 'HR', 'IT', 'Sales', 'IT', 'HR', 'Sales', 'IT'],
-                'Salary': [50000, 60000, 70000, 80000, 90000, 55000, 75000, 85000],
-                'Experience': [2, 5, 8, 12, 15, 3, 7, 10],
-                'City': ['New York', 'Boston', 'New York', 'Chicago', 'Boston', 'Chicago', 'New York', 'Boston']
-            })
+    """Load Excel data and convert dates"""
+    df = pd.read_excel(DATA_FILE)
+    # Convert Date column to datetime
+    if 'Date' in df.columns:
+        df['Date'] = pd.to_datetime(df['Date'])
     return df
 
-load_data()
+@app.route('/')
+def index():
+    """Main page"""
+    df = load_data()
+    columns = df.columns.tolist()
 
-# =============================================================================
-# AUTHENTICATION DECORATOR
-# =============================================================================
-def login_required(f):
-    """Decorator to require login for API routes"""
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'username' not in session:
-            return jsonify({'error': 'Authentication required'}), 401
-        return f(*args, **kwargs)
-    return decorated_function
+    # Get date range for date filter
+    if 'Date' in df.columns:
+        min_date = df['Date'].min().strftime('%Y-%m-%d')
+        max_date = df['Date'].max().strftime('%Y-%m-%d')
+    else:
+        min_date = max_date = None
 
-# =============================================================================
-# AUTHENTICATION API ENDPOINTS
-# =============================================================================
-@app.route("/api/login", methods=["POST"])
-def login():
-    """User login API"""
-    data = request.get_json()
-    username = data.get("username")
-    password = data.get("password")
+    return render_template('index.html',
+                         columns=columns,
+                         min_date=min_date,
+                         max_date=max_date)
 
-    user = USERS.get(username)
-    if user and check_password_hash(user['password'], password):
-        session.clear()
-        session['username'] = username
-        session['role'] = user['role']
-        session['name'] = user['name']
-        session.permanent = True
+@app.route('/api/data', methods=['POST'])
+def get_data():
+    """Get filtered data based on selected columns and date range"""
+    try:
+        data = request.get_json()
+        selected_columns = data.get('columns', [])
+        start_date = data.get('start_date')
+        end_date = data.get('end_date')
 
-        app.logger.info(f"User '{username}' logged in successfully")
+        df = load_data()
+
+        # Apply date filter if provided
+        if start_date and end_date and 'Date' in df.columns:
+            start_date = pd.to_datetime(start_date)
+            end_date = pd.to_datetime(end_date)
+            df = df[(df['Date'] >= start_date) & (df['Date'] <= end_date)]
+
+        # Select only requested columns
+        if selected_columns:
+            df = df[selected_columns]
+
+        # Convert dates to string for JSON serialization
+        if 'Date' in df.columns:
+            df['Date'] = df['Date'].dt.strftime('%Y-%m-%d')
+
+        # Convert to dict records
+        records = df.to_dict('records')
+
+        # Save state in session
+        session['selected_columns'] = selected_columns
+        session['start_date'] = start_date.strftime('%Y-%m-%d') if isinstance(start_date, pd.Timestamp) else start_date
+        session['end_date'] = end_date.strftime('%Y-%m-%d') if isinstance(end_date, pd.Timestamp) else end_date
+
         return jsonify({
             'success': True,
-            'user': {
-                'username': username,
-                'name': user['name'],
-                'role': user['role']
-            }
-        })
-    else:
-        app.logger.warning(f"Failed login attempt for username: {username}")
-        return jsonify({'error': 'Invalid username or password'}), 401
-
-@app.route("/api/logout", methods=["POST"])
-def logout():
-    """User logout API"""
-    username = session.get('username', 'Unknown')
-    session.clear()
-    app.logger.info(f"User '{username}' logged out")
-    return jsonify({'success': True})
-
-@app.route("/api/session", methods=["GET"])
-def check_session():
-    """Check if user is logged in"""
-    if 'username' in session:
-        return jsonify({
-            'authenticated': True,
-            'user': {
-                'username': session['username'],
-                'name': session['name'],
-                'role': session['role']
-            }
-        })
-    return jsonify({'authenticated': False}), 401
-
-# =============================================================================
-# DATA API ENDPOINTS
-# =============================================================================
-@app.route("/api/columns", methods=["GET"])
-@login_required
-def get_columns():
-    """Get all column names"""
-    data = load_data()
-    return jsonify({'columns': data.columns.tolist()})
-
-@app.route("/api/data", methods=["POST"])
-@login_required
-def get_data():
-    """Get data with selected columns"""
-    try:
-        data = load_data()
-        request_data = request.get_json()
-        selected_columns = request_data.get("columns", data.columns.tolist())
-
-        invalid_cols = [col for col in selected_columns if col not in data.columns]
-        if invalid_cols:
-            return jsonify({"error": f"Invalid columns: {invalid_cols}"}), 400
-
-        filtered_df = data[selected_columns]
-
-        return jsonify({
-            "data": filtered_df.to_dict("records"),
-            "columns": selected_columns
+            'data': records,
+            'columns': selected_columns
         })
     except Exception as e:
-        app.logger.error(f"Error in get_data: {str(e)}")
-        return jsonify({"error": "Failed to retrieve data"}), 500
+        return jsonify({'success': False, 'error': str(e)}), 400
 
-@app.route("/api/unique-values", methods=["POST"])
-@login_required
-def get_unique_values():
-    """Get unique values for a specific column (for slicers)"""
+@app.route('/api/chart-data', methods=['POST'])
+def get_chart_data():
+    """Get aggregated data for charts"""
     try:
-        data = load_data()
-        request_data = request.get_json()
-        column = request_data.get("column")
+        data = request.get_json()
+        chart_type = data.get('chart_type', 'bar')
+        x_column = data.get('x_column')
+        y_column = data.get('y_column')
+        aggregation = data.get('aggregation', 'sum')
+        start_date = data.get('start_date')
+        end_date = data.get('end_date')
 
-        if not column or column not in data.columns:
-            return jsonify({"error": "Invalid column"}), 400
+        if not x_column or not y_column:
+            return jsonify({'success': False, 'error': 'X and Y columns are required'}), 400
 
-        unique_values = data[column].dropna().unique().tolist()
-        unique_values = [
-            str(val) if not isinstance(val, (int, float, str, bool)) else val
-            for val in unique_values
-        ]
+        df = load_data()
+
+        # Apply date filter
+        if start_date and end_date and 'Date' in df.columns:
+            start_date = pd.to_datetime(start_date)
+            end_date = pd.to_datetime(end_date)
+            df = df[(df['Date'] >= start_date) & (df['Date'] <= end_date)]
+
+        # Group by x_column and aggregate y_column
+        if aggregation == 'sum':
+            result = df.groupby(x_column)[y_column].sum()
+        elif aggregation == 'average':
+            result = df.groupby(x_column)[y_column].mean()
+        elif aggregation == 'max':
+            result = df.groupby(x_column)[y_column].max()
+        elif aggregation == 'min':
+            result = df.groupby(x_column)[y_column].min()
+        elif aggregation == 'count':
+            result = df.groupby(x_column)[y_column].count()
+        else:
+            result = df.groupby(x_column)[y_column].sum()
+
+        # Convert to lists
+        labels = result.index.tolist()
+        values = result.values.tolist()
 
         return jsonify({
-            "column": column,
-            "uniqueValues": sorted(unique_values, key=lambda x: str(x))
+            'success': True,
+            'labels': labels,
+            'values': values,
+            'chart_type': chart_type
         })
     except Exception as e:
-        app.logger.error(f"Error in get_unique_values: {str(e)}")
-        return jsonify({"error": "Failed to get unique values"}), 500
+        return jsonify({'success': False, 'error': str(e)}), 400
 
-# =============================================================================
-# ERROR HANDLERS
-# =============================================================================
-@app.errorhandler(404)
-def not_found(e):
-    return jsonify({'error': 'Resource not found'}), 404
+@app.route('/api/session', methods=['GET'])
+def get_session():
+    """Get saved session state"""
+    return jsonify({
+        'selected_columns': session.get('selected_columns', []),
+        'start_date': session.get('start_date'),
+        'end_date': session.get('end_date')
+    })
 
-@app.errorhandler(500)
-def internal_error(e):
-    app.logger.error(f"Internal server error: {str(e)}")
-    return jsonify({'error': 'Internal server error'}), 500
-
-# =============================================================================
-# MAIN
-# =============================================================================
-if __name__ == "__main__":
-    app.run(debug=True, host='0.0.0.0', port=5000)
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
