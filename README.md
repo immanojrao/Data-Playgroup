@@ -1,72 +1,19 @@
-# Excel Data Analyzer with Django + AG Grid
+# Data Analysis Dashboard
 
-A powerful Django-based web application for analyzing Excel data with AG Grid tables, advanced filtering through slicers, and dynamic chart visualization.
+A simple and clean web application for analyzing Excel data with interactive tables and charts.
 
 ## Features
 
-### 1. **Column Selection**
-- Select which columns to display in the data table
-- Quick "Select All" and "Deselect All" options
-- Real-time updates to the AG Grid table
+✅ **Column Selection** - Choose which columns to display in the data grid
+✅ **Interactive Data Grid** - Sort, filter, and search data using AG Grid
+✅ **Date Filter** - Filter data by date range (applies to both grid and charts)
+✅ **Dynamic Charts** - Create various chart types with your data
+✅ **Multiple Chart Types** - Bar, Line, Pie, Doughnut, Radar, and Polar Area charts
+✅ **Data Aggregation** - Sum, Average, Max, Min, and Count operations
+✅ **State Persistence** - Your selections are saved during your session
+✅ **Clean Blue Theme** - Simple, professional interface with blue color scheme
 
-### 2. **Advanced Filtering with Slicers (5+ Slicers)**
-- Dynamic slicers generated from your Excel columns
-- Each slicer shows unique values from the respective column
-- Multiple selections within a slicer (OR logic)
-- Easy "Apply Filters" and "Clear All Filters" buttons
-- Integrates seamlessly with AG Grid filtering
-
-### 3. **Interactive AG Grid Table**
-- Sortable columns
-- Built-in column filters
-- Floating filters for quick filtering
-- Pagination support (20 rows per page)
-- Resizable columns
-
-### 4. **Dynamic Chart Visualization**
-
-#### Chart Types:
-- Bar Chart
-- Line Chart
-- Pie Chart
-- Scatter Plot
-- Doughnut Chart
-- Area Chart
-- Horizontal Bar Chart
-
-#### Chart Features:
-- **Scrollable Charts**: When the number of x-axis values increases, the chart becomes horizontally scrollable instead of reducing bar width
-- **Skip Null/Zero Values**: Automatically filters out null and zero values from charts (optional toggle)
-- **Aggregation Methods**: Sum, Average, Count, Min, Max
-- **Group by X-Axis**: Aggregate duplicate x-axis values
-- **Zoom & Pan**: Mouse wheel zoom and pan support
-
-### 5. **Responsive Design**
-- Modern gradient UI with purple theme
-- Step-by-step workflow with numbered badges
-- Mobile-friendly responsive layout
-
-## Project Structure
-
-```
-Data-Playgroup/
-├── dashboard/                  # Django app
-│   ├── views.py               # Backend views (Excel handling, API endpoints)
-│   ├── urls.py                # URL routing for dashboard
-│   └── templates/
-│       └── dashboard/
-│           └── index.html     # Main template with AG Grid & Chart.js
-├── myproject/                 # Django project
-│   ├── settings.py            # Django settings
-│   ├── urls.py                # Main URL configuration
-│   └── wsgi.py                # WSGI configuration
-├── manage.py                  # Django management script
-├── requirements.txt           # Python dependencies
-├── data.xlsx                  # Your Excel data file (place here)
-└── README.md                  # This file
-```
-
-## Installation & Setup
+## Quick Start
 
 ### 1. Install Dependencies
 
@@ -74,210 +21,152 @@ Data-Playgroup/
 pip install -r requirements.txt
 ```
 
-Dependencies include:
-- Django 5.0.0
+### 2. Prepare Your Data
+
+Place your Excel file in the project folder and name it `data.xlsx`. The file should have a `Date` column for date filtering to work.
+
+**Example data structure:**
+```
+Product   | Category    | Sales | Quantity | Region | Date
+Laptop    | Electronics | 1200  | 15       | North  | 2024-01-15
+Mouse     | Electronics | 250   | 50       | South  | 2024-01-16
+```
+
+### 3. Run the Application
+
+```bash
+python app.py
+```
+
+### 4. Open in Browser
+
+Navigate to: `http://localhost:5000`
+
+## How to Use
+
+### Selecting Columns
+
+1. Check/uncheck columns in the "Select Columns to Display" section
+2. Click "Load Data" to update the grid
+
+### Filtering by Date
+
+1. Select a start and end date in the "Date Filter" section
+2. Click "Apply Filter"
+3. The filter applies to both the data grid and charts
+
+### Creating Charts
+
+1. **Select Chart Type** - Choose from Bar, Line, Pie, etc.
+2. **Select X-Axis Column** - The column for grouping (e.g., Category, Region)
+3. **Select Y-Axis Column** - The column to measure (e.g., Sales, Quantity)
+4. **Select Aggregation** - How to combine values (Sum, Average, Max, Min, Count)
+5. **Click "Generate Chart"**
+
+### Grid Features
+
+The data grid has built-in features:
+- **Sort** - Click column headers to sort
+- **Filter** - Use the filter boxes below column headers
+- **Search** - Type in filter boxes to search
+- **Pagination** - Navigate through pages of data
+
+Your grid filters work independently from column selection and date filters.
+
+## File Structure
+
+```
+.
+├── app.py                 # Flask application
+├── requirements.txt       # Python dependencies
+├── data.xlsx             # Your Excel data file
+└── templates/
+    └── index.html        # Web interface
+```
+
+## Requirements
+
+- Python 3.7+
+- Flask 3.0.0
 - pandas 2.1.4
 - openpyxl 3.1.2
-- django-cors-headers 4.3.1
-- gunicorn 21.2.0
-
-### 2. Add Your Excel File
-
-Place your Excel file in the root directory and name it `data.xlsx`, or update the file path in `dashboard/views.py`:
-
-```python
-# In dashboard/views.py, line 14
-df = pd.read_excel(os.path.join(BASE_DIR, 'data.xlsx'))
-```
-
-**Note**: If no Excel file is found, the app will create a sample DataFrame with dummy data.
-
-### 3. Run Migrations
-
-```bash
-python manage.py migrate
-```
-
-### 4. Start the Development Server
-
-```bash
-python manage.py runserver
-```
-
-The application will be available at: `http://127.0.0.1:8000/`
-
-## Usage Guide
-
-### Step 1: Select Columns to Display
-1. Check/uncheck columns you want to display
-2. Click "Load Selected Columns" to update the table
-3. Use "Select All" or "Deselect All" for quick selection
-
-### Step 2: Initialize and Use Slicers
-1. Click "Initialize Slicers" to load unique values from your columns
-2. Select specific values from each slicer to filter data
-3. Click "Apply Filters" to filter the AG Grid table
-4. Use "Clear All Filters" to reset
-
-**Note**: At least 5 slicers will be created based on your selected columns.
-
-### Step 3: View and Filter Data in AG Grid
-- Use the column filters in the table header
-- Sort columns by clicking headers
-- The table automatically reflects slicer filters
-
-### Step 4: Create Dynamic Charts
-1. Select Chart Type from dropdown
-2. Choose X-Axis Column (categorical data)
-3. Choose Y-Axis Column (numerical data)
-4. Select Aggregation Method (Sum, Average, etc.)
-5. Toggle "Group by X-Axis" to aggregate duplicate values
-6. Toggle "Skip Null & Zero Values" to clean your data
-7. Click "Generate Chart"
-
-**Chart Scrolling**: If you have many x-axis values (e.g., 50+ data points), the chart will automatically become horizontally scrollable to maintain readable bar widths.
 
 ## API Endpoints
 
-### 1. `GET /`
-Renders the main dashboard page with all columns.
+### POST /api/data
+Get filtered data based on selected columns and date range
 
-### 2. `POST /get_data`
-Returns data for selected columns.
-
-**Request Body**:
+**Request:**
 ```json
 {
-  "columns": ["Column1", "Column2", "Column3"]
+  "columns": ["Product", "Sales", "Date"],
+  "start_date": "2024-01-01",
+  "end_date": "2024-12-31"
 }
 ```
 
-**Response**:
+**Response:**
 ```json
 {
-  "data": [{...}, {...}],
-  "columns": ["Column1", "Column2", "Column3"]
+  "success": true,
+  "data": [...],
+  "columns": [...]
 }
 ```
 
-### 3. `POST /get_unique_values`
-Returns unique values for a specific column (used by slicers).
+### POST /api/chart-data
+Get aggregated data for charts
 
-**Request Body**:
+**Request:**
 ```json
 {
-  "column": "Department"
+  "chart_type": "bar",
+  "x_column": "Category",
+  "y_column": "Sales",
+  "aggregation": "sum",
+  "start_date": "2024-01-01",
+  "end_date": "2024-12-31"
 }
 ```
 
-**Response**:
+**Response:**
 ```json
 {
-  "column": "Department",
-  "uniqueValues": ["IT", "HR", "Sales"]
+  "success": true,
+  "labels": ["Electronics", "Furniture"],
+  "values": [6228, 6925]
 }
 ```
 
-## Key Implementation Details
+### GET /api/session
+Get saved session state (selected columns and date range)
 
-### Skip Null/Zero Values Logic
-The application filters data in two stages:
+## Tips
 
-1. **Before Aggregation** (dashboard/templates/dashboard/index.html:728-731):
-```javascript
-// Skip null/zero values if option is enabled (before aggregation)
-if (skipNullZero && (yVal === null || yVal === undefined || yVal === 0 || isNaN(yVal))) {
-    return;
-}
-```
+- **Column Selection**: Uncheck columns you don't need to focus on relevant data
+- **Date Range**: Narrow down your date range to analyze specific time periods
+- **Grid Filters**: Use grid's built-in filters for detailed data exploration
+- **Chart Types**:
+  - Use **Bar/Line** for trends and comparisons
+  - Use **Pie/Doughnut** for proportions
+  - Use **Radar** for multivariate data
+- **Aggregations**:
+  - **Sum** for totals
+  - **Average** for means
+  - **Max/Min** for extremes
+  - **Count** for frequencies
 
-2. **After Aggregation** (dashboard/templates/dashboard/index.html:753-756):
-```javascript
-// Skip if aggregated value is zero (when skipNullZero is enabled)
-if (skipNullZero && aggregatedValue === 0) {
-    return;
-}
-```
+## Troubleshooting
 
-### Scrollable Chart Implementation
-Charts dynamically calculate width based on data points (dashboard/templates/dashboard/index.html:677-690):
+**Issue**: "Failed to load data"
+**Solution**: Make sure `data.xlsx` exists and has valid data
 
-```javascript
-// Calculate dynamic width for scrollable chart
-const minBarWidth = 40; // minimum width per bar in pixels
-const calculatedWidth = Math.max(800, xValues.length * minBarWidth);
+**Issue**: Charts not showing
+**Solution**: Ensure you've selected both X and Y columns and clicked "Generate Chart"
 
-if (chartType === 'bar' || chartType === 'horizontalBar') {
-    chartContainer.style.width = calculatedWidth + 'px';
-    canvas.width = calculatedWidth;
-}
-```
-
-### Slicer Integration with AG Grid
-Slicers use AG Grid's native filter API (dashboard/templates/dashboard/index.html:585-598):
-
-```javascript
-// Apply filters to AG Grid
-Object.keys(slicersData).forEach(column => {
-    const filterInstance = gridApi.getColumnFilterInstance(column);
-
-    if (filtersByColumn[column] && filtersByColumn[column].length > 0) {
-        filterInstance.setModel({
-            filterType: 'set',
-            values: filtersByColumn[column]
-        });
-    } else {
-        filterInstance.setModel(null);
-    }
-});
-```
-
-## Technologies Used
-
-- **Backend**: Django 5.0
-- **Data Processing**: pandas, openpyxl
-- **Frontend Table**: AG Grid Community 31.0.0
-- **Charts**: Chart.js 4.4.0 with Zoom Plugin
-- **Styling**: Custom CSS with gradient themes
-
-## Customization
-
-### Change Excel File Path
-Edit `dashboard/views.py` line 14:
-```python
-df = pd.read_excel(os.path.join(BASE_DIR, 'your-file.xlsx'))
-```
-
-### Adjust Number of Slicers
-Edit `dashboard/templates/dashboard/index.html` line 499:
-```javascript
-const columnsForSlicers = selectedColumns.slice(0, 10); // Change 10 to your desired number
-```
-
-### Modify Chart Bar Width
-Edit `dashboard/templates/dashboard/index.html` line 677:
-```javascript
-const minBarWidth = 40; // Change to adjust minimum bar width
-```
-
-## Production Deployment
-
-For production deployment with Gunicorn:
-
-```bash
-gunicorn myproject.wsgi:application --bind 0.0.0.0:8000
-```
-
-Remember to:
-1. Set `DEBUG = False` in `myproject/settings.py`
-2. Configure `ALLOWED_HOSTS` appropriately
-3. Set up static files serving
-4. Use a proper database (PostgreSQL, MySQL) instead of SQLite
+**Issue**: Date filter not working
+**Solution**: Ensure your Excel file has a column named "Date" with valid dates
 
 ## License
 
-This project is open source and available under the MIT License.
-
-## Support
-
-For issues or questions, please open an issue on the project repository.
+MIT License

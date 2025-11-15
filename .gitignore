@@ -5,8 +5,9 @@ __pycache__/
 *.so
 .Python
 
-# Django
+# Flask/Django
 *.log
+logs/
 db.sqlite3
 db.sqlite3-journal
 /static/
@@ -16,6 +17,17 @@ db.sqlite3-journal
 venv/
 env/
 ENV/
+
+# Security & Secrets
+.env
+.env.local
+.env.production
+*.pem
+*.key
+*.crt
+*.cert
+secrets/
+config/production.py
 
 # IDE
 .vscode/
@@ -27,3 +39,10 @@ ENV/
 # OS
 .DS_Store
 Thumbs.db
+
+# Sensitive Data
+*.xlsx
+*.xls
+*.csv
+users.json
+data/

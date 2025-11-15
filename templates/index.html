@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Analysis Dashboard</title>
+
+    <!-- AG Grid CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.0.0/styles/ag-grid.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ag-grid-community@31.0.0/styles/ag-theme-alpine.css">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #003d6a;
+            margin-bottom: 30px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 32px;
+            letter-spacing: -0.5px;
+        }
+
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #34495e;
+        }
+
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            font-weight: normal;
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            margin-right: 8px;
+            cursor: pointer;
+        }
+
+        .date-filter {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 15px;
+            align-items: end;
+        }
+
+        .date-filter input {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #0066b2 0%, #004f8a 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 61, 106, 0.2);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        button:hover {
+            background: linear-gradient(135deg, #004f8a 0%, #003d6a 100%);
+            box-shadow: 0 4px 12px rgba(0, 61, 106, 0.3);
+            transform: translateY(-1px);
+        }
+
+        button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 6px rgba(0, 61, 106, 0.2);
+        }
+
+        .grid-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        #dataGrid {
+            height: 500px;
+            width: 100%;
+        }
+
+        .chart-controls {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .chart-controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .chart-controls select {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 100%;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        #chartCanvas {
+            max-height: 500px;
+        }
+
+        .info-text {
+            color: #7f8c8d;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            color: #003d6a;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #0066b2;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+
+        /* Date Range Slider Styles */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 8px;
+            background: transparent;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-track {
+            height: 8px;
+            background: #d1d8e0;
+            border-radius: 4px;
+        }
+
+        input[type="range"]::-moz-range-track {
+            height: 8px;
+            background: #d1d8e0;
+            border-radius: 4px;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 22px;
+            height: 22px;
+            background: linear-gradient(135deg, #0066b2, #004f8a);
+            border-radius: 50%;
+            cursor: pointer;
+            pointer-events: auto;
+            position: relative;
+            z-index: 2;
+            box-shadow: 0 2px 6px rgba(0, 61, 106, 0.3);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 22px;
+            height: 22px;
+            background: linear-gradient(135deg, #0066b2, #004f8a);
+            border-radius: 50%;
+            cursor: pointer;
+            pointer-events: auto;
+            border: none;
+            position: relative;
+            z-index: 2;
+            box-shadow: 0 2px 6px rgba(0, 61, 106, 0.3);
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: linear-gradient(135deg, #004f8a, #003d6a);
+            box-shadow: 0 3px 8px rgba(0, 61, 106, 0.4);
+        }
+
+        input[type="range"]::-moz-range-thumb:hover {
+            background: linear-gradient(135deg, #004f8a, #003d6a);
+            box-shadow: 0 3px 8px rgba(0, 61, 106, 0.4);
+        }
+
+        #endDateSlider::-webkit-slider-track {
+            background: linear-gradient(to right, #d1d8e0 0%, #0066b2 0%, #0066b2 100%, #d1d8e0 100%);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Data Analysis Dashboard</h1>
+
+        <!-- Column Selection -->
+        <div class="controls">
+            <div class="control-group">
+                <div class="section-title">Select Columns to Display</div>
+                <div class="checkbox-group" id="columnSelector">
+                    {% for column in columns %}
+                    <label>
+                        <input type="checkbox" value="{{ column }}" checked>
+                        {{ column }}
+                    </label>
+                    {% endfor %}
+                </div>
+                <button onclick="loadData()" style="margin-top: 15px;">Load Data</button>
+            </div>
+        </div>
+
+        <!-- Date Filter -->
+        <div class="controls">
+            <div class="control-group">
+                <div class="section-title">Date Filter</div>
+                <div style="padding: 20px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                        <div>
+                            <strong>Start:</strong> <span id="startDateDisplay">{{ min_date }}</span>
+                        </div>
+                        <div>
+                            <strong>End:</strong> <span id="endDateDisplay">{{ max_date }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Hidden inputs for actual date values -->
+                    <input type="hidden" id="startDate" value="{{ min_date }}">
+                    <input type="hidden" id="endDate" value="{{ max_date }}">
+                    <input type="hidden" id="minDate" value="{{ min_date }}">
+                    <input type="hidden" id="maxDate" value="{{ max_date }}">
+
+                    <!-- Dual range slider -->
+                    <div style="position: relative; height: 50px; margin-bottom: 10px;">
+                        <input type="range" id="startDateSlider" min="0" max="100" value="0"
+                               style="position: absolute; width: 100%; pointer-events: none;">
+                        <input type="range" id="endDateSlider" min="0" max="100" value="100"
+                               style="position: absolute; width: 100%; pointer-events: none;">
+                    </div>
+
+                    <div style="text-align: center; margin-top: 10px;">
+                        <button onclick="applyDateFilter()">Apply Date Filter</button>
+                        <button onclick="resetDateFilter()" style="background: #95a5a6; margin-left: 10px;">Reset</button>
+                    </div>
+                </div>
+                <div class="info-text">Drag the sliders to select a date range. Filter applies to both grid and charts.</div>
+            </div>
+        </div>
+
+        <!-- Data Grid -->
+        <div class="grid-container">
+            <div class="section-title">Data Grid</div>
+            <div id="dataGrid" class="ag-theme-alpine"></div>
+            <div class="info-text">You can sort, filter, and search within the grid. <strong>Grid filters automatically update the chart in real-time!</strong></div>
+        </div>
+
+        <!-- Chart Controls -->
+        <div class="chart-controls">
+            <div class="section-title">Chart Configuration</div>
+            <div class="chart-controls-grid">
+                <div>
+                    <label>Chart Type</label>
+                    <select id="chartType">
+                        <option value="bar">Bar Chart</option>
+                        <option value="line">Line Chart</option>
+                        <option value="pie">Pie Chart</option>
+                        <option value="doughnut">Doughnut Chart</option>
+                        <option value="radar">Radar Chart</option>
+                        <option value="polarArea">Polar Area Chart</option>
+                    </select>
+                </div>
+                <div>
+                    <label>X-Axis Column</label>
+                    <select id="xColumn">
+                        <option value="">Select column...</option>
+                        {% for column in columns %}
+                        <option value="{{ column }}">{{ column }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label>Y-Axis Column</label>
+                    <select id="yColumn">
+                        <option value="">Select column...</option>
+                        {% for column in columns %}
+                        <option value="{{ column }}">{{ column }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label>Aggregation</label>
+                    <select id="aggregation">
+                        <option value="sum">Sum</option>
+                        <option value="average">Average</option>
+                        <option value="max">Maximum</option>
+                        <option value="min">Minimum</option>
+                        <option value="count">Count</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Legend Column (Optional)</label>
+                    <select id="legendColumn">
+                        <option value="">None - Single Series</option>
+                        {% for column in columns %}
+                        <option value="{{ column }}">{{ column }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="info-text" style="margin-top: 10px; margin-bottom: 15px;">
+                💡 <strong>Tip:</strong> Select a Legend Column to create multi-series charts (e.g., grouped/stacked bars by category)
+            </div>
+            <button onclick="generateChart()">Generate Chart</button>
+        </div>
+
+        <!-- Chart Display -->
+        <div class="chart-container">
+            <div class="section-title">Chart</div>
+            <canvas id="chartCanvas"></canvas>
+            <div class="info-text" id="chartInfo">Configure and generate a chart using the controls above</div>
+        </div>
+    </div>
+
+    <!-- AG Grid JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/ag-grid-community@31.0.0/dist/ag-grid-community.min.js"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <script>
+        let gridApi;
+        let currentChart = null;
+        let currentData = [];
+        let currentChartConfig = null;  // Store current chart configuration
+
+        // Professional blue color palette for charts (Moody's-inspired)
+        const blueColors = [
+            'rgba(0, 102, 178, 0.85)',    // Moody's primary blue
+            'rgba(0, 79, 138, 0.85)',     // Darker corporate blue
+            'rgba(0, 61, 106, 0.85)',     // Deep navy blue
+            'rgba(51, 133, 196, 0.85)',   // Medium blue
+            'rgba(102, 163, 209, 0.85)',  // Light blue
+            'rgba(153, 193, 222, 0.85)',  // Pale blue
+            'rgba(0, 51, 85, 0.85)',      // Very dark blue
+            'rgba(76, 147, 194, 0.85)'    // Bright blue accent
+        ];
+
+        // Initialize AG Grid
+        const gridOptions = {
+            defaultColDef: {
+                sortable: true,
+                filter: true,
+                resizable: true,
+                floatingFilter: true
+            },
+            pagination: true,
+            paginationPageSize: 20,
+            domLayout: 'normal',
+            onFilterChanged: function() {
+                // Auto-update chart when grid filters change
+                if (currentChartConfig) {
+                    updateChartFromGrid();
+                }
+            }
+        };
+
+        const gridDiv = document.querySelector('#dataGrid');
+        gridApi = agGrid.createGrid(gridDiv, gridOptions);
+
+        // Load data from API
+        async function loadData() {
+            const selectedColumns = Array.from(document.querySelectorAll('#columnSelector input:checked'))
+                .map(cb => cb.value);
+
+            if (selectedColumns.length === 0) {
+                alert('Please select at least one column');
+                return;
+            }
+
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+
+            try {
+                const response = await fetch('/api/data', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        columns: selectedColumns,
+                        start_date: startDate,
+                        end_date: endDate
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    currentData = result.data;
+
+                    // Create column definitions
+                    const columnDefs = result.columns.map(col => ({
+                        field: col,
+                        headerName: col
+                    }));
+
+                    // Update grid
+                    gridApi.setGridOption('columnDefs', columnDefs);
+                    gridApi.setGridOption('rowData', result.data);
+
+                    // Update chart column dropdowns
+                    updateChartColumns(result.columns);
+                } else {
+                    alert('Error loading data: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to load data');
+            }
+        }
+
+        // Update chart column dropdowns
+        function updateChartColumns(columns) {
+            const xColumn = document.getElementById('xColumn');
+            const yColumn = document.getElementById('yColumn');
+            const legendColumn = document.getElementById('legendColumn');
+
+            xColumn.innerHTML = '<option value="">Select column...</option>';
+            yColumn.innerHTML = '<option value="">Select column...</option>';
+            legendColumn.innerHTML = '<option value="">None - Single Series</option>';
+
+            columns.forEach(col => {
+                xColumn.innerHTML += `<option value="${col}">${col}</option>`;
+                yColumn.innerHTML += `<option value="${col}">${col}</option>`;
+                legendColumn.innerHTML += `<option value="${col}">${col}</option>`;
+            });
+        }
+
+        // Apply date filter
+        async function applyDateFilter() {
+            await loadData();
+        }
+
+        // Get filtered data from AG Grid
+        function getFilteredDataFromGrid() {
+            const filteredData = [];
+            gridApi.forEachNodeAfterFilter(node => {
+                filteredData.push(node.data);
+            });
+            return filteredData;
+        }
+
+        // Aggregate data for chart
+        function aggregateData(data, xColumn, yColumn, aggregation, legendColumn = null) {
+            if (!legendColumn) {
+                // Single series - original logic
+                const groups = {};
+
+                data.forEach(row => {
+                    const xValue = row[xColumn];
+                    const yValue = row[yColumn];
+
+                    if (yValue === null || yValue === undefined || yValue === '' ||
+                        (typeof yValue === 'number' && isNaN(yValue))) {
+                        return;
+                    }
+
+                    if (xValue === null || xValue === undefined || xValue === '') {
+                        return;
+                    }
+
+                    if (!groups[xValue]) {
+                        groups[xValue] = [];
+                    }
+                    groups[xValue].push(yValue);
+                });
+
+                const labels = [];
+                const values = [];
+
+                Object.keys(groups).forEach(key => {
+                    const groupValues = groups[key];
+                    let aggregatedValue = performAggregation(groupValues, aggregation);
+
+                    if (aggregatedValue !== null && aggregatedValue !== undefined && !isNaN(aggregatedValue)) {
+                        labels.push(key);
+                        values.push(aggregatedValue);
+                    }
+                });
+
+                return { labels, values, datasets: null };
+            } else {
+                // Multi-series - group by both X and Legend columns
+                const groups = {};  // { xValue: { legendValue: [yValues] } }
+                const allLegendValues = new Set();
+
+                data.forEach(row => {
+                    const xValue = row[xColumn];
+                    const yValue = row[yColumn];
+                    const legendValue = row[legendColumn];
+
+                    if (yValue === null || yValue === undefined || yValue === '' ||
+                        (typeof yValue === 'number' && isNaN(yValue))) {
+                        return;
+                    }
+
+                    if (xValue === null || xValue === undefined || xValue === '') {
+                        return;
+                    }
+
+                    if (legendValue === null || legendValue === undefined || legendValue === '') {
+                        return;
+                    }
+
+                    if (!groups[xValue]) {
+                        groups[xValue] = {};
+                    }
+                    if (!groups[xValue][legendValue]) {
+                        groups[xValue][legendValue] = [];
+                    }
+                    groups[xValue][legendValue].push(yValue);
+                    allLegendValues.add(legendValue);
+                });
+
+                const labels = Object.keys(groups);
+                const legendValues = Array.from(allLegendValues);
+                const datasets = [];
+
+                // Create a dataset for each legend value
+                legendValues.forEach((legendValue, index) => {
+                    const dataValues = labels.map(label => {
+                        const groupValues = groups[label][legendValue] || [];
+                        if (groupValues.length === 0) return 0;
+                        return performAggregation(groupValues, aggregation);
+                    });
+
+                    datasets.push({
+                        label: legendValue,
+                        data: dataValues,
+                        backgroundColor: blueColors[index % blueColors.length],
+                        borderColor: blueColors[index % blueColors.length].replace('0.8', '1'),
+                        borderWidth: 2
+                    });
+                });
+
+                return { labels, values: null, datasets };
+            }
+        }
+
+        // Helper function to perform aggregation
+        function performAggregation(values, aggregation) {
+            if (values.length === 0) return 0;
+
+            switch (aggregation) {
+                case 'sum':
+                    return values.reduce((sum, val) => sum + Number(val), 0);
+                case 'average':
+                    return values.reduce((sum, val) => sum + Number(val), 0) / values.length;
+                case 'max':
+                    return Math.max(...values.map(v => Number(v)));
+                case 'min':
+                    return Math.min(...values.map(v => Number(v)));
+                case 'count':
+                    return values.length;
+                default:
+                    return values.reduce((sum, val) => sum + Number(val), 0);
+            }
+        }
+
+        // Update chart from grid filtered data
+        function updateChartFromGrid() {
+            if (!currentChartConfig) return;
+
+            const { chartType, xColumn, yColumn, aggregation, legendColumn } = currentChartConfig;
+
+            // Get filtered data from grid
+            const filteredData = getFilteredDataFromGrid();
+
+            if (filteredData.length === 0) {
+                document.getElementById('chartInfo').textContent = 'No data to display. Adjust your filters.';
+                if (currentChart) {
+                    currentChart.destroy();
+                    currentChart = null;
+                }
+                return;
+            }
+
+            // Aggregate data
+            const result = aggregateData(filteredData, xColumn, yColumn, aggregation, legendColumn);
+
+            if (result.labels.length === 0) {
+                document.getElementById('chartInfo').textContent = 'No valid data for selected columns. Try different columns or adjust filters.';
+                if (currentChart) {
+                    currentChart.destroy();
+                    currentChart = null;
+                }
+                return;
+            }
+
+            // Render chart
+            if (result.datasets) {
+                // Multi-series chart
+                renderMultiSeriesChart(result.labels, result.datasets, chartType, xColumn, yColumn, aggregation, legendColumn);
+            } else {
+                // Single series chart
+                renderChart(result.labels, result.values, chartType, xColumn, yColumn, aggregation);
+            }
+        }
+
+        // Generate chart (triggered by user)
+        async function generateChart() {
+            const chartType = document.getElementById('chartType').value;
+            const xColumn = document.getElementById('xColumn').value;
+            const yColumn = document.getElementById('yColumn').value;
+            const aggregation = document.getElementById('aggregation').value;
+            const legendColumn = document.getElementById('legendColumn').value || null;
+
+            if (!xColumn || !yColumn) {
+                alert('Please select both X and Y columns');
+                return;
+            }
+
+            // Save chart configuration for real-time updates
+            currentChartConfig = { chartType, xColumn, yColumn, aggregation, legendColumn };
+
+            // Update chart from grid data
+            updateChartFromGrid();
+        }
+
+        // Render chart with Chart.js
+        function renderChart(labels, values, chartType, xColumn, yColumn, aggregation) {
+            const ctx = document.getElementById('chartCanvas').getContext('2d');
+
+            // Destroy existing chart
+            if (currentChart) {
+                currentChart.destroy();
+            }
+
+            // Prepare dataset colors
+            let backgroundColor, borderColor;
+            if (chartType === 'pie' || chartType === 'doughnut' || chartType === 'polarArea') {
+                backgroundColor = labels.map((_, i) => blueColors[i % blueColors.length]);
+                borderColor = backgroundColor.map(c => c.replace('0.8', '1'));
+            } else {
+                backgroundColor = blueColors[0];
+                borderColor = blueColors[1];
+            }
+
+            // Create chart
+            currentChart = new Chart(ctx, {
+                type: chartType,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: `${aggregation} of ${yColumn}`,
+                        data: values,
+                        backgroundColor: backgroundColor,
+                        borderColor: borderColor,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        title: {
+                            display: true,
+                            text: `${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart: ${aggregation} of ${yColumn} by ${xColumn}`,
+                            font: {
+                                size: 16
+                            }
+                        }
+                    },
+                    scales: chartType === 'bar' || chartType === 'line' ? {
+                        y: {
+                            beginAtZero: true
+                        }
+                    } : {}
+                }
+            });
+
+            document.getElementById('chartInfo').textContent =
+                `Chart showing ${aggregation} of ${yColumn} by ${xColumn} (${labels.length} data points)`;
+        }
+
+        // Render multi-series chart with Chart.js
+        function renderMultiSeriesChart(labels, datasets, chartType, xColumn, yColumn, aggregation, legendColumn) {
+            const ctx = document.getElementById('chartCanvas').getContext('2d');
+
+            // Destroy existing chart
+            if (currentChart) {
+                currentChart.destroy();
+            }
+
+            // Create chart
+            currentChart = new Chart(ctx, {
+                type: chartType,
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        title: {
+                            display: true,
+                            text: `${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart: ${aggregation} of ${yColumn} by ${xColumn} (grouped by ${legendColumn})`,
+                            font: {
+                                size: 16
+                            }
+                        }
+                    },
+                    scales: chartType === 'bar' || chartType === 'line' ? {
+                        y: {
+                            beginAtZero: true
+                        }
+                    } : {}
+                }
+            });
+
+            document.getElementById('chartInfo').textContent =
+                `Chart showing ${aggregation} of ${yColumn} by ${xColumn}, grouped by ${legendColumn} (${labels.length} categories, ${datasets.length} series)`;
+        }
+
+        // Date Range Slider Functions
+        function initializeDateSliders() {
+            const minDate = document.getElementById('minDate').value;
+            const maxDate = document.getElementById('maxDate').value;
+            const startDateSlider = document.getElementById('startDateSlider');
+            const endDateSlider = document.getElementById('endDateSlider');
+
+            if (!minDate || !maxDate) return;
+
+            const minTimestamp = new Date(minDate).getTime();
+            const maxTimestamp = new Date(maxDate).getTime();
+
+            // Set up event listeners
+            startDateSlider.addEventListener('input', function() {
+                const startPercent = parseInt(this.value);
+                const endPercent = parseInt(endDateSlider.value);
+
+                // Prevent start from going past end
+                if (startPercent >= endPercent) {
+                    this.value = endPercent - 1;
+                    return;
+                }
+
+                updateDateFromSlider();
+            });
+
+            endDateSlider.addEventListener('input', function() {
+                const startPercent = parseInt(startDateSlider.value);
+                const endPercent = parseInt(this.value);
+
+                // Prevent end from going before start
+                if (endPercent <= startPercent) {
+                    this.value = startPercent + 1;
+                    return;
+                }
+
+                updateDateFromSlider();
+            });
+
+            // Initialize slider positions
+            updateSliderFromDate();
+        }
+
+        function updateDateFromSlider() {
+            const minDate = document.getElementById('minDate').value;
+            const maxDate = document.getElementById('maxDate').value;
+            const startPercent = parseInt(document.getElementById('startDateSlider').value);
+            const endPercent = parseInt(document.getElementById('endDateSlider').value);
+
+            const minTimestamp = new Date(minDate).getTime();
+            const maxTimestamp = new Date(maxDate).getTime();
+            const totalRange = maxTimestamp - minTimestamp;
+
+            // Calculate dates from percentages
+            const startTimestamp = minTimestamp + (totalRange * startPercent / 100);
+            const endTimestamp = minTimestamp + (totalRange * endPercent / 100);
+
+            const startDate = new Date(startTimestamp).toISOString().split('T')[0];
+            const endDate = new Date(endTimestamp).toISOString().split('T')[0];
+
+            document.getElementById('startDate').value = startDate;
+            document.getElementById('endDate').value = endDate;
+            document.getElementById('startDateDisplay').textContent = startDate;
+            document.getElementById('endDateDisplay').textContent = endDate;
+        }
+
+        function updateSliderFromDate() {
+            const minDate = document.getElementById('minDate').value;
+            const maxDate = document.getElementById('maxDate').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+
+            if (!minDate || !maxDate || !startDate || !endDate) return;
+
+            const minTimestamp = new Date(minDate).getTime();
+            const maxTimestamp = new Date(maxDate).getTime();
+            const startTimestamp = new Date(startDate).getTime();
+            const endTimestamp = new Date(endDate).getTime();
+            const totalRange = maxTimestamp - minTimestamp;
+
+            // Calculate percentages
+            const startPercent = ((startTimestamp - minTimestamp) / totalRange) * 100;
+            const endPercent = ((endTimestamp - minTimestamp) / totalRange) * 100;
+
+            document.getElementById('startDateSlider').value = Math.round(startPercent);
+            document.getElementById('endDateSlider').value = Math.round(endPercent);
+            document.getElementById('startDateDisplay').textContent = startDate;
+            document.getElementById('endDateDisplay').textContent = endDate;
+        }
+
+        function resetDateFilter() {
+            const minDate = document.getElementById('minDate').value;
+            const maxDate = document.getElementById('maxDate').value;
+
+            document.getElementById('startDate').value = minDate;
+            document.getElementById('endDate').value = maxDate;
+            document.getElementById('startDateSlider').value = 0;
+            document.getElementById('endDateSlider').value = 100;
+            document.getElementById('startDateDisplay').textContent = minDate;
+            document.getElementById('endDateDisplay').textContent = maxDate;
+
+            applyDateFilter();
+        }
+
+        // Load session state on page load
+        async function loadSession() {
+            try {
+                const response = await fetch('/api/session');
+                const data = await response.json();
+
+                if (data.selected_columns && data.selected_columns.length > 0) {
+                    // Restore column selection
+                    document.querySelectorAll('#columnSelector input').forEach(cb => {
+                        cb.checked = data.selected_columns.includes(cb.value);
+                    });
+
+                    // Restore date filter
+                    if (data.start_date) {
+                        document.getElementById('startDate').value = data.start_date;
+                    }
+                    if (data.end_date) {
+                        document.getElementById('endDate').value = data.end_date;
+                    }
+
+                    // Load data with saved settings
+                    await loadData();
+                }
+            } catch (error) {
+                console.error('Error loading session:', error);
+            }
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', async () => {
+            // Initialize date sliders
+            initializeDateSliders();
+
+            await loadSession();
+            // If no session, load with default settings
+            if (currentData.length === 0) {
+                await loadData();
+            }
+        });
+    </script>
+</body>
+</html>
