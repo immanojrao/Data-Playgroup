@@ -330,8 +330,17 @@
                     </select>
                 </div>
                 <div>
-                    <label>Y-Axis Column</label>
+                    <label>Y-Axis Column (Primary)</label>
                     <select id="yColumn">
+                        <option value="">Select column...</option>
+                        {% for column in columns %}
+                        <option value="{{ column }}">{{ column }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div id="secondaryYContainer" style="display: none;">
+                    <label>Secondary Y-Axis Column</label>
+                    <select id="yColumn2">
                         <option value="">Select column...</option>
                         {% for column in columns %}
                         <option value="{{ column }}">{{ column }}</option>
@@ -359,7 +368,7 @@
                 </div>
             </div>
             <div class="info-text" style="margin-top: 10px; margin-bottom: 15px;">
-                💡 <strong>Tip:</strong> Select a Legend Column to create stacked bar charts (e.g., Sales by Category, stacked by Region)
+                💡 <strong>Tip:</strong> Select a Legend Column to create stacked bar charts. For Combination charts, select a Secondary Y-Axis column (e.g., Sales as bars, Quantity as line).
             </div>
             <button onclick="generateChart()">Generate Chart</button>
         </div>
@@ -383,6 +392,20 @@
         let currentChart = null;
         let currentData = [];
         let currentChartConfig = null;  // Store current chart configuration
+
+        // Show/hide secondary Y-axis dropdown based on chart type
+        document.addEventListener('DOMContentLoaded', function() {
+            const chartTypeSelect = document.getElementById('chartType');
+            const secondaryYContainer = document.getElementById('secondaryYContainer');
+
+            chartTypeSelect.addEventListener('change', function() {
+                if (this.value === 'combination') {
+                    secondaryYContainer.style.display = 'block';
+                } else {
+                    secondaryYContainer.style.display = 'none';
+                }
+            });
+        });
 
         // Professional blue color palette for charts (Moody's-inspired)
         const blueColors = [
@@ -516,6 +539,7 @@
         function updateChartColumns(columns) {
             const xColumn = document.getElementById('xColumn');
             const yColumn = document.getElementById('yColumn');
+            const yColumn2 = document.getElementById('yColumn2');
             const legendColumn = document.getElementById('legendColumn');
             const chartType = document.getElementById('chartType');
             const aggregation = document.getElementById('aggregation');
@@ -523,6 +547,7 @@
             // Save current selections
             const savedXColumn = xColumn.value;
             const savedYColumn = yColumn.value;
+            const savedYColumn2 = yColumn2.value;
             const savedLegendColumn = legendColumn.value;
             const savedChartType = chartType.value;
             const savedAggregation = aggregation.value;
@@ -530,11 +555,13 @@
             // Rebuild dropdowns
             xColumn.innerHTML = '<option value="">Select column...</option>';
             yColumn.innerHTML = '<option value="">Select column...</option>';
+            yColumn2.innerHTML = '<option value="">Select column...</option>';
             legendColumn.innerHTML = '<option value="">None - Single Series</option>';
 
             columns.forEach(col => {
                 xColumn.innerHTML += `<option value="${col}">${col}</option>`;
                 yColumn.innerHTML += `<option value="${col}">${col}</option>`;
+                yColumn2.innerHTML += `<option value="${col}">${col}</option>`;
                 legendColumn.innerHTML += `<option value="${col}">${col}</option>`;
             });
 
@@ -544,6 +571,9 @@
             }
             if (savedYColumn && columns.includes(savedYColumn)) {
                 yColumn.value = savedYColumn;
+            }
+            if (savedYColumn2 && columns.includes(savedYColumn2)) {
+                yColumn2.value = savedYColumn2;
             }
             if (savedLegendColumn && (savedLegendColumn === '' || columns.includes(savedLegendColumn))) {
                 legendColumn.value = savedLegendColumn;
@@ -705,7 +735,7 @@
         function updateChartFromGrid() {
             if (!currentChartConfig) return;
 
-            const { chartType, xColumn, yColumn, aggregation, legendColumn } = currentChartConfig;
+            const { chartType, xColumn, yColumn, yColumn2, aggregation, legendColumn } = currentChartConfig;
 
             // Get filtered data from grid
             const filteredData = getFilteredDataFromGrid();
@@ -716,6 +746,12 @@
                     currentChart.destroy();
                     currentChart = null;
                 }
+                return;
+            }
+
+            // Handle combination chart with two Y columns
+            if (chartType === 'combination' && yColumn2) {
+                renderCombinationChart(filteredData, xColumn, yColumn, yColumn2, aggregation);
                 return;
             }
 
@@ -746,6 +782,7 @@
             const chartType = document.getElementById('chartType').value;
             const xColumn = document.getElementById('xColumn').value;
             const yColumn = document.getElementById('yColumn').value;
+            const yColumn2 = document.getElementById('yColumn2').value || null;
             const aggregation = document.getElementById('aggregation').value;
             const legendColumn = document.getElementById('legendColumn').value || null;
 
@@ -754,17 +791,185 @@
                 return;
             }
 
-            // Combination chart requires a legend column for dual Y-axis
-            if (chartType === 'combination' && !legendColumn) {
-                alert('Combination chart requires a Legend/Series column to create dual Y-axis. Please select a column for the legend.');
+            // Combination chart requires a secondary Y-axis column
+            if (chartType === 'combination' && !yColumn2) {
+                alert('Combination chart requires a Secondary Y-Axis column. Please select a column for the secondary axis.');
                 return;
             }
 
             // Save chart configuration for real-time updates
-            currentChartConfig = { chartType, xColumn, yColumn, aggregation, legendColumn };
+            currentChartConfig = { chartType, xColumn, yColumn, yColumn2, aggregation, legendColumn };
 
             // Update chart from grid data
             updateChartFromGrid();
+        }
+
+        // Render combination chart with dual Y-axis (two different Y columns)
+        function renderCombinationChart(data, xColumn, yColumn1, yColumn2, aggregation) {
+            const ctx = document.getElementById('chartCanvas').getContext('2d');
+
+            // Destroy existing chart
+            if (currentChart) {
+                currentChart.destroy();
+                currentChart = null;
+            }
+
+            // Aggregate data for both Y columns
+            const groups = {};
+            data.forEach(row => {
+                const xValue = row[xColumn];
+                const y1Value = row[yColumn1];
+                const y2Value = row[yColumn2];
+
+                if (xValue === null || xValue === undefined || xValue === '') return;
+
+                if (!groups[xValue]) {
+                    groups[xValue] = { y1: [], y2: [] };
+                }
+
+                if (y1Value !== null && y1Value !== undefined && y1Value !== '' && !isNaN(Number(y1Value))) {
+                    groups[xValue].y1.push(Number(y1Value));
+                }
+                if (y2Value !== null && y2Value !== undefined && y2Value !== '' && !isNaN(Number(y2Value))) {
+                    groups[xValue].y2.push(Number(y2Value));
+                }
+            });
+
+            const labels = Object.keys(groups);
+            const values1 = [];
+            const values2 = [];
+
+            labels.forEach(label => {
+                const y1Vals = groups[label].y1;
+                const y2Vals = groups[label].y2;
+                values1.push(performAggregation(y1Vals, aggregation));
+                values2.push(performAggregation(y2Vals, aggregation));
+            });
+
+            if (labels.length === 0) {
+                document.getElementById('chartInfo').textContent = 'No valid data for combination chart.';
+                return;
+            }
+
+            // Calculate fixed Y-axis ranges with 10% padding
+            const min1 = Math.min(...values1);
+            const max1 = Math.max(...values1);
+            const range1 = max1 - min1;
+
+            const min2 = Math.min(...values2);
+            const max2 = Math.max(...values2);
+            const range2 = max2 - min2;
+
+            // Create chart
+            currentChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: `${aggregation} of ${yColumn1}`,
+                            data: values1,
+                            backgroundColor: blueColors[0],
+                            borderColor: blueColors[0].replace('0.85', '1'),
+                            borderWidth: 2,
+                            yAxisID: 'y',
+                            type: 'bar',
+                            order: 2
+                        },
+                        {
+                            label: `${aggregation} of ${yColumn2}`,
+                            data: values2,
+                            backgroundColor: blueColors[1].replace('0.85', '0.3'),
+                            borderColor: blueColors[1].replace('0.85', '1'),
+                            borderWidth: 3,
+                            yAxisID: 'y2',
+                            type: 'line',
+                            fill: false,
+                            tension: 0.1,
+                            order: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        title: {
+                            display: true,
+                            text: `Combination Chart: ${aggregation} of ${yColumn1} (bars) and ${yColumn2} (line) by ${xColumn}`,
+                            font: {
+                                size: 16
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    const value = context.parsed.y;
+                                    label += formatLargeNumber(value);
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: xColumn
+                            }
+                        },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            beginAtZero: true,
+                            min: Math.max(0, min1 - range1 * 0.1),
+                            max: max1 + range1 * 0.1,
+                            title: {
+                                display: true,
+                                text: yColumn1
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return formatLargeNumber(value);
+                                }
+                            }
+                        },
+                        y2: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            beginAtZero: true,
+                            min: Math.max(0, min2 - range2 * 0.1),
+                            max: max2 + range2 * 0.1,
+                            title: {
+                                display: true,
+                                text: yColumn2
+                            },
+                            grid: {
+                                drawOnChartArea: false
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return formatLargeNumber(value);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            document.getElementById('chartInfo').textContent =
+                `Combination chart: ${yColumn1} (bars, left axis) and ${yColumn2} (line, right axis) by ${xColumn} (${labels.length} categories)`;
         }
 
         // Render chart with Chart.js
