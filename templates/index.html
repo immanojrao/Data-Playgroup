@@ -269,26 +269,27 @@
         <!-- Data Grid -->
         <div class="grid-container">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
-                <div style="flex: 0 0 500px;">
-                    <div style="display: flex; align-items: center; gap: 15px;">
-                        <div style="font-weight: 600; color: #003d6a; white-space: nowrap;">📅 Date Range:</div>
-                        <div style="flex: 1;">
-                            <div style="font-size: 12px; color: #0066b2; margin-bottom: 5px; display: flex; justify-content: space-between;">
-                                <span id="startDateDisplay">{{ min_date }}</span>
-                                <span id="endDateDisplay">{{ max_date }}</span>
-                            </div>
-                            <!-- Dual range slider with blue selected area -->
-                            <div style="position: relative; height: 30px;">
-                                <div id="sliderTrack" style="position: absolute; top: 11px; left: 0; right: 0; height: 8px; background: #d1d8e0; border-radius: 4px;"></div>
-                                <div id="sliderRange" style="position: absolute; top: 11px; height: 8px; background: linear-gradient(135deg, #0066b2, #004f8a); border-radius: 4px;"></div>
-                                <input type="range" id="startDateSlider" min="0" max="100" value="0"
-                                       style="position: absolute; width: 100%; pointer-events: none;">
-                                <input type="range" id="endDateSlider" min="0" max="100" value="100"
-                                       style="position: absolute; width: 100%; pointer-events: none;">
-                            </div>
+                <div style="flex: 0 0 auto;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div style="font-weight: 600; color: #003d6a; white-space: nowrap;">📅 Date Filter:</div>
+                        <div style="display: flex; align-items: center; gap: 5px;">
+                            <label style="font-size: 12px; color: #34495e;">From:</label>
+                            <select id="startDateSelect" style="padding: 6px 10px; border: 1px solid #0066b2; border-radius: 4px; font-size: 12px; background: white;">
+                                {% for date in available_dates %}
+                                <option value="{{ date }}" {% if date == min_date %}selected{% endif %}>{{ date }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
-                        <button onclick="applyDateFilter()" style="padding: 8px 16px; font-size: 12px;">Apply</button>
-                        <button onclick="resetDateFilter()" style="background: linear-gradient(135deg, #95a5a6, #7f8c8d); padding: 8px 16px; font-size: 12px;">Reset</button>
+                        <div style="display: flex; align-items: center; gap: 5px;">
+                            <label style="font-size: 12px; color: #34495e;">To:</label>
+                            <select id="endDateSelect" style="padding: 6px 10px; border: 1px solid #0066b2; border-radius: 4px; font-size: 12px; background: white;">
+                                {% for date in available_dates %}
+                                <option value="{{ date }}" {% if date == max_date %}selected{% endif %}>{{ date }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button onclick="applyDateFilter()" style="padding: 6px 12px; font-size: 12px;">Apply</button>
+                        <button onclick="resetDateFilter()" style="background: linear-gradient(135deg, #95a5a6, #7f8c8d); padding: 6px 12px; font-size: 12px;">Reset</button>
                     </div>
                 </div>
                 <div style="display: flex; align-items: center; gap: 15px;">
@@ -602,6 +603,24 @@
 
         // Apply date filter
         async function applyDateFilter() {
+            // Update hidden inputs from dropdowns
+            const startDateSelect = document.getElementById('startDateSelect');
+            const endDateSelect = document.getElementById('endDateSelect');
+
+            if (startDateSelect && endDateSelect) {
+                const startDate = startDateSelect.value;
+                const endDate = endDateSelect.value;
+
+                // Validate that start date is not after end date
+                if (new Date(startDate) > new Date(endDate)) {
+                    alert('Start date cannot be after end date');
+                    return;
+                }
+
+                document.getElementById('startDate').value = startDate;
+                document.getElementById('endDate').value = endDate;
+            }
+
             await loadData();
         }
 
@@ -1482,15 +1501,17 @@
             const minDate = document.getElementById('minDate').value;
             const maxDate = document.getElementById('maxDate').value;
 
+            // Reset hidden inputs
             document.getElementById('startDate').value = minDate;
             document.getElementById('endDate').value = maxDate;
-            document.getElementById('startDateSlider').value = 0;
-            document.getElementById('endDateSlider').value = 100;
-            document.getElementById('startDateDisplay').textContent = minDate;
-            document.getElementById('endDateDisplay').textContent = maxDate;
 
-            // Update blue range visual to full range
-            updateBlueRange(0, 100);
+            // Reset dropdowns
+            const startDateSelect = document.getElementById('startDateSelect');
+            const endDateSelect = document.getElementById('endDateSelect');
+            if (startDateSelect && endDateSelect) {
+                startDateSelect.value = minDate;
+                endDateSelect.value = maxDate;
+            }
 
             applyDateFilter();
         }
@@ -1510,9 +1531,19 @@
                     // Restore date filter
                     if (data.start_date) {
                         document.getElementById('startDate').value = data.start_date;
+                        // Also update dropdown
+                        const startDateSelect = document.getElementById('startDateSelect');
+                        if (startDateSelect) {
+                            startDateSelect.value = data.start_date;
+                        }
                     }
                     if (data.end_date) {
                         document.getElementById('endDate').value = data.end_date;
+                        // Also update dropdown
+                        const endDateSelect = document.getElementById('endDateSelect');
+                        if (endDateSelect) {
+                            endDateSelect.value = data.end_date;
+                        }
                     }
 
                     // Load data with saved settings
@@ -1525,8 +1556,6 @@
 
         // Initialize on page load
         window.addEventListener('load', async () => {
-            // Initialize date sliders
-            initializeDateSliders();
 
             try {
                 await loadSession();
