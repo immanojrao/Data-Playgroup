@@ -851,14 +851,37 @@
                 return;
             }
 
-            // Calculate fixed Y-axis ranges with 10% padding
-            const min1 = Math.min(...values1);
-            const max1 = Math.max(...values1);
-            const range1 = max1 - min1;
+            // Check if values need to be converted to millions
+            const maxValue1 = Math.max(...values1);
+            const maxValue2 = Math.max(...values2);
+            const hasMillions1 = maxValue1 >= 1000000;
+            const hasMillions2 = maxValue2 >= 1000000;
 
-            const min2 = Math.min(...values2);
-            const max2 = Math.max(...values2);
-            const range2 = max2 - min2;
+            // Convert values to millions if any dataset has large numbers
+            // For comparability, both axes should use the same unit
+            const useMillions = hasMillions1 || hasMillions2;
+            let displayValues1, displayValues2;
+            let yLabel1, yLabel2;
+
+            if (useMillions) {
+                displayValues1 = values1.map(v => v / 1000000);
+                displayValues2 = values2.map(v => v / 1000000);
+                yLabel1 = `${yColumn1} ($ Millions)`;
+                yLabel2 = `${yColumn2} ($ Millions)`;
+            } else {
+                displayValues1 = values1;
+                displayValues2 = values2;
+                yLabel1 = yColumn1;
+                yLabel2 = yColumn2;
+            }
+
+            // Calculate unified axis range for comparability
+            const allValues = [...displayValues1, ...displayValues2];
+            const minValue = Math.min(...allValues);
+            const maxValue = Math.max(...allValues);
+            const range = maxValue - minValue;
+            const axisMin = Math.max(0, minValue - range * 0.1);
+            const axisMax = maxValue + range * 0.1;
 
             // Create chart
             currentChart = new Chart(ctx, {
@@ -868,7 +891,7 @@
                     datasets: [
                         {
                             label: `${aggregation} of ${yColumn1}`,
-                            data: values1,
+                            data: displayValues1,
                             backgroundColor: blueColors[0],
                             borderColor: blueColors[0].replace('0.85', '1'),
                             borderWidth: 2,
@@ -878,7 +901,7 @@
                         },
                         {
                             label: `${aggregation} of ${yColumn2}`,
-                            data: values2,
+                            data: displayValues2,
                             backgroundColor: blueColors[1].replace('0.85', '0.3'),
                             borderColor: blueColors[1].replace('0.85', '1'),
                             borderWidth: 3,
@@ -913,7 +936,11 @@
                                         label += ': ';
                                     }
                                     const value = context.parsed.y;
-                                    label += formatLargeNumber(value);
+                                    if (useMillions) {
+                                        label += '$' + value.toFixed(2) + 'M';
+                                    } else {
+                                        label += value.toLocaleString();
+                                    }
                                     return label;
                                 }
                             }
@@ -924,7 +951,10 @@
                             display: true,
                             title: {
                                 display: true,
-                                text: xColumn
+                                text: xColumn,
+                                font: {
+                                    weight: 'bold'
+                                }
                             }
                         },
                         y: {
@@ -932,16 +962,23 @@
                             display: true,
                             position: 'left',
                             beginAtZero: true,
-                            min: Math.max(0, min1 - range1 * 0.1),
-                            max: max1 + range1 * 0.1,
+                            min: axisMin,
+                            max: axisMax,
                             title: {
                                 display: true,
-                                text: yColumn1
+                                text: yLabel1,
+                                font: {
+                                    weight: 'bold'
+                                }
                             },
                             ticks: {
                                 callback: function(value) {
-                                    return formatLargeNumber(value);
-                                }
+                                    if (useMillions) {
+                                        return '$' + value.toFixed(1) + 'M';
+                                    }
+                                    return value.toLocaleString();
+                                },
+                                count: 8  // Show more tick marks for clarity
                             }
                         },
                         y2: {
@@ -949,27 +986,35 @@
                             display: true,
                             position: 'right',
                             beginAtZero: true,
-                            min: Math.max(0, min2 - range2 * 0.1),
-                            max: max2 + range2 * 0.1,
+                            min: axisMin,
+                            max: axisMax,
                             title: {
                                 display: true,
-                                text: yColumn2
+                                text: yLabel2,
+                                font: {
+                                    weight: 'bold'
+                                }
                             },
                             grid: {
                                 drawOnChartArea: false
                             },
                             ticks: {
                                 callback: function(value) {
-                                    return formatLargeNumber(value);
-                                }
+                                    if (useMillions) {
+                                        return '$' + value.toFixed(1) + 'M';
+                                    }
+                                    return value.toLocaleString();
+                                },
+                                count: 8  // Show more tick marks for clarity
                             }
                         }
                     }
                 }
             });
 
+            const unitText = useMillions ? ' (values in $ Millions)' : '';
             document.getElementById('chartInfo').textContent =
-                `Combination chart: ${yColumn1} (bars, left axis) and ${yColumn2} (line, right axis) by ${xColumn} (${labels.length} categories)`;
+                `Combination chart: ${yColumn1} (bars, left axis) and ${yColumn2} (line, right axis) by ${xColumn} (${labels.length} categories)${unitText}`;
         }
 
         // Render chart with Chart.js
