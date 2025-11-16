@@ -754,6 +754,12 @@
                 return;
             }
 
+            // Combination chart requires a legend column for dual Y-axis
+            if (chartType === 'combination' && !legendColumn) {
+                alert('Combination chart requires a Legend/Series column to create dual Y-axis. Please select a column for the legend.');
+                return;
+            }
+
             // Save chart configuration for real-time updates
             currentChartConfig = { chartType, xColumn, yColumn, aggregation, legendColumn };
 
@@ -883,6 +889,13 @@
                 actualChartType = 'bar';
             }
 
+            // Combination chart requires at least 2 datasets
+            if (isCombination && datasets.length < 2) {
+                document.getElementById('chartInfo').textContent =
+                    'Combination chart requires at least 2 series. Your legend column produced only 1 series. Try a different legend column.';
+                return;
+            }
+
             // Calculate fixed Y-axis ranges for combination charts
             let yAxisConfig = {};
             let y2AxisConfig = {};
@@ -991,6 +1004,13 @@
                         }
                     },
                     scales: isCombination ? {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: xColumn
+                            }
+                        },
                         y: yAxisConfig,
                         y2: y2AxisConfig
                     } : (chartType === 'bar' || chartType === 'line' || chartType === 'area' ? {
