@@ -9,7 +9,7 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-change-in-production')
 
 # Path to Excel file
-DATA_FILE = 'data.xlsx'
+DATA_FILE = 'Financial Sample Processed.xlsx'
 
 def convert_to_json_serializable(obj):
     """Convert pandas/numpy objects to JSON-serializable types"""
@@ -28,7 +28,7 @@ def convert_to_json_serializable(obj):
     elif isinstance(obj, dict):
         return {k: convert_to_json_serializable(v) for k, v in obj.items()}
     else:
-        return obj
+        return str(obj)
 
 def load_data():
     """Load Excel data and convert dates"""
@@ -210,4 +210,4 @@ def get_session():
     })
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=True, port=8000)
