@@ -376,9 +376,17 @@
 
         <!-- Chart Display -->
         <div class="chart-container">
-            <div class="section-title">Chart</div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div class="section-title">Chart</div>
+                <button id="resetZoomBtn" onclick="resetChartZoom()" style="padding: 6px 12px; font-size: 11px; display: none;">
+                    🔍 Reset Zoom
+                </button>
+            </div>
             <canvas id="chartCanvas"></canvas>
             <div class="info-text" id="chartInfo">Configure and generate a chart using the controls above</div>
+            <div class="info-text" id="zoomInfo" style="display: none; color: #0066b2; font-weight: 500;">
+                💡 <strong>Zoom:</strong> Scroll to zoom in/out | <strong>Pan:</strong> Click and drag to scroll horizontally
+            </div>
         </div>
     </div>
 
@@ -387,6 +395,9 @@
 
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- Chart.js Zoom Plugin for pan and zoom -->
+    <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
 
     <script>
         let gridApi;
@@ -430,6 +441,52 @@
                 return '$' + (num / 1000000).toFixed(2) + 'M';
             }
             return num;
+        }
+
+        // Reset chart zoom
+        function resetChartZoom() {
+            if (currentChart) {
+                currentChart.resetZoom();
+            }
+        }
+
+        // Get zoom and pan configuration for charts with many data points
+        function getZoomPanConfig(numDataPoints) {
+            const enableZoom = numDataPoints > 15;
+
+            if (!enableZoom) {
+                document.getElementById('resetZoomBtn').style.display = 'none';
+                document.getElementById('zoomInfo').style.display = 'none';
+                return {};
+            }
+
+            document.getElementById('resetZoomBtn').style.display = 'inline-block';
+            document.getElementById('zoomInfo').style.display = 'block';
+
+            return {
+                zoom: {
+                    wheel: {
+                        enabled: true,
+                        mode: 'x'
+                    },
+                    pinch: {
+                        enabled: true,
+                        mode: 'x'
+                    },
+                    mode: 'x',
+                    limits: {
+                        x: { min: 'original', max: 'original' }
+                    }
+                },
+                pan: {
+                    enabled: true,
+                    mode: 'x',
+                    threshold: 5
+                },
+                limits: {
+                    x: { min: 'original', max: 'original' }
+                }
+            };
         }
 
         function formatCurrency(value) {
@@ -963,7 +1020,8 @@
                                     return label;
                                 }
                             }
-                        }
+                        },
+                        zoom: getZoomPanConfig(labels.length)
                     },
                     scales: {
                         x: {
@@ -1032,8 +1090,9 @@
             });
 
             const unitText = useMillions ? ' (values in $ Millions)' : '';
+            const zoomText = labels.length > 15 ? ' - Use mouse wheel to zoom, drag to pan' : '';
             document.getElementById('chartInfo').textContent =
-                `Combination chart: ${yColumn1} (bars, left axis) and ${yColumn2} (line, right axis) by ${xColumn} (${labels.length} categories)${unitText}`;
+                `Combination chart: ${yColumn1} (bars, left axis) and ${yColumn2} (line, right axis) by ${xColumn} (${labels.length} categories)${unitText}${zoomText}`;
         }
 
         // Render chart with Chart.js
@@ -1158,15 +1217,17 @@
                                     return label;
                                 }
                             }
-                        }
+                        },
+                        zoom: getZoomPanConfig(labels.length)
                     },
                     scales: scalesConfig
                 }
             });
 
             const unitText = useMillions ? ' (values in $ Millions)' : '';
+            const zoomText = labels.length > 15 ? ' - Use mouse wheel to zoom, drag to pan' : '';
             document.getElementById('chartInfo').textContent =
-                `Chart showing ${aggregation} of ${yColumn} by ${xColumn} (${labels.length} data points)${unitText}`;
+                `Chart showing ${aggregation} of ${yColumn} by ${xColumn} (${labels.length} data points)${unitText}${zoomText}`;
         }
 
         // Render multi-series chart with Chart.js
@@ -1381,16 +1442,18 @@
                                     return label;
                                 }
                             }
-                        }
+                        },
+                        zoom: getZoomPanConfig(labels.length)
                     },
                     scales: scalesConfig
                 }
             });
 
             const unitText = useMillions ? ' (values in $ Millions)' : '';
+            const zoomText = labels.length > 15 ? ' - Use mouse wheel to zoom, drag to pan' : '';
             document.getElementById('chartInfo').textContent = isCombination ?
-                `Combination chart with dual Y-axis showing ${aggregation} of ${yColumn} by ${xColumn}, split by ${legendColumn} (${labels.length} categories, ${datasets.length} series)${unitText}` :
-                `Stacked chart showing ${aggregation} of ${yColumn} by ${xColumn}, broken down by ${legendColumn} (${labels.length} categories, ${datasets.length} series)${unitText}`;
+                `Combination chart with dual Y-axis showing ${aggregation} of ${yColumn} by ${xColumn}, split by ${legendColumn} (${labels.length} categories, ${datasets.length} series)${unitText}${zoomText}` :
+                `Stacked chart showing ${aggregation} of ${yColumn} by ${xColumn}, broken down by ${legendColumn} (${labels.length} categories, ${datasets.length} series)${unitText}${zoomText}`;
         }
 
         // Date Range Slider Functions
