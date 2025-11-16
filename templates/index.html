@@ -1027,6 +1027,11 @@
                 currentChart = null;
             }
 
+            // Check if values need to be converted to millions
+            const maxValue = Math.max(...values);
+            const useMillions = maxValue >= 1000000;
+            let displayValues = useMillions ? values.map(v => v / 1000000) : values;
+
             // Convert area to line with fill, scatter uses scatter type
             let actualChartType = chartType;
             let fill = false;
@@ -1050,9 +1055,41 @@
             // For scatter, convert to {x, y} format
             let chartData;
             if (chartType === 'scatter') {
-                chartData = labels.map((label, i) => ({ x: i, y: values[i] }));
+                chartData = labels.map((label, i) => ({ x: i, y: displayValues[i] }));
             } else {
-                chartData = values;
+                chartData = displayValues;
+            }
+
+            // Build scales configuration
+            let scalesConfig = {};
+            if (chartType === 'bar' || chartType === 'line' || chartType === 'area' || chartType === 'scatter') {
+                scalesConfig = {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                if (useMillions) {
+                                    return '$' + value.toFixed(1) + 'M';
+                                }
+                                return value.toLocaleString();
+                            }
+                        }
+                    }
+                };
+            } else if (chartType === 'radar') {
+                scalesConfig = {
+                    r: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                if (useMillions) {
+                                    return '$' + value.toFixed(1) + 'M';
+                                }
+                                return value.toLocaleString();
+                            }
+                        }
+                    }
+                };
             }
 
             // Create chart
@@ -1061,7 +1098,7 @@
                 data: {
                     labels: chartType === 'scatter' ? undefined : labels,
                     datasets: [{
-                        label: `${aggregation} of ${yColumn}`,
+                        label: `${aggregation} of ${yColumn}${useMillions ? ' ($ Millions)' : ''}`,
                         data: chartData,
                         backgroundColor: backgroundColor,
                         borderColor: borderColor,
@@ -1080,7 +1117,7 @@
                         },
                         title: {
                             display: true,
-                            text: `${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart: ${aggregation} of ${yColumn} by ${xColumn}`,
+                            text: `${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart: ${aggregation} of ${yColumn} by ${xColumn}${useMillions ? ' ($ Millions)' : ''}`,
                             font: {
                                 size: 16
                             }
@@ -1092,28 +1129,25 @@
                                     if (label) {
                                         label += ': ';
                                     }
-                                    const value = context.parsed.y || context.parsed;
-                                    label += formatLargeNumber(value);
+                                    const value = context.parsed.y !== undefined ? context.parsed.y :
+                                                  context.parsed.r !== undefined ? context.parsed.r : context.parsed;
+                                    if (useMillions) {
+                                        label += '$' + (typeof value === 'number' ? value.toFixed(2) : value) + 'M';
+                                    } else {
+                                        label += typeof value === 'number' ? value.toLocaleString() : value;
+                                    }
                                     return label;
                                 }
                             }
                         }
                     },
-                    scales: chartType === 'bar' || chartType === 'line' || chartType === 'area' || chartType === 'scatter' ? {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return formatLargeNumber(value);
-                                }
-                            }
-                        }
-                    } : {}
+                    scales: scalesConfig
                 }
             });
 
+            const unitText = useMillions ? ' (values in $ Millions)' : '';
             document.getElementById('chartInfo').textContent =
-                `Chart showing ${aggregation} of ${yColumn} by ${xColumn} (${labels.length} data points)`;
+                `Chart showing ${aggregation} of ${yColumn} by ${xColumn} (${labels.length} data points)${unitText}`;
         }
 
         // Render multi-series chart with Chart.js
@@ -1124,6 +1158,24 @@
             if (currentChart) {
                 currentChart.destroy();
                 currentChart = null;
+            }
+
+            // Check if values need to be converted to millions
+            let maxValue = 0;
+            datasets.forEach(dataset => {
+                dataset.data.forEach(val => {
+                    if (val !== null && val !== undefined && val > maxValue) {
+                        maxValue = val;
+                    }
+                });
+            });
+            const useMillions = maxValue >= 1000000;
+
+            // Convert data to millions if needed
+            if (useMillions) {
+                datasets.forEach(dataset => {
+                    dataset.data = dataset.data.map(v => v !== null && v !== undefined ? v / 1000000 : v);
+                });
             }
 
             // Handle combination chart with dual Y-axis
@@ -1173,7 +1225,10 @@
                     max: max1 + range1 * 0.1,
                     ticks: {
                         callback: function(value) {
-                            return formatLargeNumber(value);
+                            if (useMillions) {
+                                return '$' + value.toFixed(1) + 'M';
+                            }
+                            return value.toLocaleString();
                         }
                     }
                 };
@@ -1190,7 +1245,10 @@
                     },
                     ticks: {
                         callback: function(value) {
-                            return formatLargeNumber(value);
+                            if (useMillions) {
+                                return '$' + value.toFixed(1) + 'M';
+                            }
+                            return value.toLocaleString();
                         }
                     }
                 };
@@ -1215,6 +1273,54 @@
                 });
             }
 
+            // Build scales configuration
+            let scalesConfig = {};
+            if (isCombination) {
+                scalesConfig = {
+                    x: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: xColumn
+                        }
+                    },
+                    y: yAxisConfig,
+                    y2: y2AxisConfig
+                };
+            } else if (chartType === 'bar' || chartType === 'line' || chartType === 'area') {
+                scalesConfig = {
+                    x: {
+                        stacked: true
+                    },
+                    y: {
+                        stacked: true,
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                if (useMillions) {
+                                    return '$' + value.toFixed(1) + 'M';
+                                }
+                                return value.toLocaleString();
+                            }
+                        }
+                    }
+                };
+            } else if (chartType === 'radar') {
+                scalesConfig = {
+                    r: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                if (useMillions) {
+                                    return '$' + value.toFixed(1) + 'M';
+                                }
+                                return value.toLocaleString();
+                            }
+                        }
+                    }
+                };
+            }
+
             // Create chart
             currentChart = new Chart(ctx, {
                 type: actualChartType,
@@ -1233,8 +1339,8 @@
                         title: {
                             display: true,
                             text: isCombination ?
-                                `Combination Chart: ${aggregation} of ${yColumn} by ${xColumn} (dual Y-axis by ${legendColumn})` :
-                                `${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart: ${aggregation} of ${yColumn} by ${xColumn} (stacked by ${legendColumn})`,
+                                `Combination Chart: ${aggregation} of ${yColumn} by ${xColumn} (dual Y-axis by ${legendColumn})${useMillions ? ' ($ Millions)' : ''}` :
+                                `${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart: ${aggregation} of ${yColumn} by ${xColumn} (stacked by ${legendColumn})${useMillions ? ' ($ Millions)' : ''}`,
                             font: {
                                 size: 16
                             }
@@ -1246,43 +1352,26 @@
                                     if (label) {
                                         label += ': ';
                                     }
-                                    const value = context.parsed.y;
-                                    label += formatLargeNumber(value);
+                                    const value = context.parsed.y !== undefined ? context.parsed.y :
+                                                  context.parsed.r !== undefined ? context.parsed.r : context.parsed;
+                                    if (useMillions) {
+                                        label += '$' + (typeof value === 'number' ? value.toFixed(2) : value) + 'M';
+                                    } else {
+                                        label += typeof value === 'number' ? value.toLocaleString() : value;
+                                    }
                                     return label;
                                 }
                             }
                         }
                     },
-                    scales: isCombination ? {
-                        x: {
-                            display: true,
-                            title: {
-                                display: true,
-                                text: xColumn
-                            }
-                        },
-                        y: yAxisConfig,
-                        y2: y2AxisConfig
-                    } : (chartType === 'bar' || chartType === 'line' || chartType === 'area' ? {
-                        x: {
-                            stacked: true
-                        },
-                        y: {
-                            stacked: true,
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return formatLargeNumber(value);
-                                }
-                            }
-                        }
-                    } : {})
+                    scales: scalesConfig
                 }
             });
 
+            const unitText = useMillions ? ' (values in $ Millions)' : '';
             document.getElementById('chartInfo').textContent = isCombination ?
-                `Combination chart with dual Y-axis showing ${aggregation} of ${yColumn} by ${xColumn}, split by ${legendColumn} (${labels.length} categories, ${datasets.length} series)` :
-                `Stacked chart showing ${aggregation} of ${yColumn} by ${xColumn}, broken down by ${legendColumn} (${labels.length} categories, ${datasets.length} series)`;
+                `Combination chart with dual Y-axis showing ${aggregation} of ${yColumn} by ${xColumn}, split by ${legendColumn} (${labels.length} categories, ${datasets.length} series)${unitText}` :
+                `Stacked chart showing ${aggregation} of ${yColumn} by ${xColumn}, broken down by ${legendColumn} (${labels.length} categories, ${datasets.length} series)${unitText}`;
         }
 
         // Date Range Slider Functions
