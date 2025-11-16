@@ -9,7 +9,7 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-change-in-production')
 
 # Path to Excel file
-DATA_FILE = 'Financial Sample Processed.xlsx'
+DATA_FILE = 'data.xlsx'
 
 def convert_to_json_serializable(obj):
     """Convert pandas/numpy objects to JSON-serializable types"""
@@ -28,7 +28,7 @@ def convert_to_json_serializable(obj):
     elif isinstance(obj, dict):
         return {k: convert_to_json_serializable(v) for k, v in obj.items()}
     else:
-        return str(obj)
+        return obj
 
 def load_data():
     """Load Excel data and convert dates"""
@@ -84,8 +84,9 @@ def index():
     df = load_data()
     columns = df.columns.tolist()
 
-    # Get date range for date filter
+    # Get date range and all available dates for date filter
     min_date = max_date = None
+    available_dates = []
     if 'Date' in df.columns:
         try:
             # Filter out NaT values before getting min/max
@@ -96,15 +97,20 @@ def index():
                 # Ensure proper conversion to string
                 min_date = convert_to_json_serializable(min_date_obj)
                 max_date = convert_to_json_serializable(max_date_obj)
+                # Get all unique dates sorted
+                unique_dates = valid_dates.sort_values().unique()
+                available_dates = [convert_to_json_serializable(d) for d in unique_dates]
         except Exception as e:
             print(f"Error getting date range: {str(e)}")
             # Use default dates if conversion fails
             min_date = max_date = None
+            available_dates = []
 
     return render_template('index.html',
                          columns=columns,
                          min_date=min_date,
-                         max_date=max_date)
+                         max_date=max_date,
+                         available_dates=available_dates)
 
 @app.route('/api/data', methods=['POST'])
 def get_data():
@@ -210,4 +216,4 @@ def get_session():
     })
 
 if __name__ == '__main__':
-    app.run(debug=True, port=8000)
+    app.run(debug=True, port=5000)
