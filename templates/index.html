@@ -271,7 +271,7 @@
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
                 <div style="flex: 0 0 500px;">
                     <div style="display: flex; align-items: center; gap: 15px;">
-                        <div style="font-weight: 600; color: #003d6a; white-space: nowrap;">Date Range:</div>
+                        <div style="font-weight: 600; color: #003d6a; white-space: nowrap;">📅 Date Range:</div>
                         <div style="flex: 1;">
                             <div style="font-size: 12px; color: #0066b2; margin-bottom: 5px; display: flex; justify-content: space-between;">
                                 <span id="startDateDisplay">{{ min_date }}</span>
@@ -280,7 +280,7 @@
                             <!-- Dual range slider with blue selected area -->
                             <div style="position: relative; height: 30px;">
                                 <div id="sliderTrack" style="position: absolute; top: 11px; left: 0; right: 0; height: 8px; background: #d1d8e0; border-radius: 4px;"></div>
-                                <div id="sliderRange" style="position: absolute; top: 11px; height: 8px; background: linear-gradient(135deg, #0028A1, #004f8a); border-radius: 4px;"></div>
+                                <div id="sliderRange" style="position: absolute; top: 11px; height: 8px; background: linear-gradient(135deg, #0066b2, #004f8a); border-radius: 4px;"></div>
                                 <input type="range" id="startDateSlider" min="0" max="100" value="0"
                                        style="position: absolute; width: 100%; pointer-events: none;">
                                 <input type="range" id="endDateSlider" min="0" max="100" value="100"
@@ -292,9 +292,9 @@
                     </div>
                 </div>
                 <div style="display: flex; align-items: center; gap: 15px;">
-                    <div class="section-title" style="border: none; margin: 0;"></div>
+                    <div class="section-title" style="border: none; margin: 0;">Data Grid</div>
                     <button onclick="exportToCSV()" style="padding: 8px 16px; font-size: 12px;">
-                        Download Excel
+                        📥 Export to CSV
                     </button>
                 </div>
             </div>
@@ -330,8 +330,17 @@
                     </select>
                 </div>
                 <div>
-                    <label>Y-Axis Column</label>
+                    <label>Y-Axis Column (Primary)</label>
                     <select id="yColumn">
+                        <option value="">Select column...</option>
+                        {% for column in columns %}
+                        <option value="{{ column }}">{{ column }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div id="secondaryYContainer" style="display: none;">
+                    <label>Secondary Y-Axis Column</label>
+                    <select id="yColumn2">
                         <option value="">Select column...</option>
                         {% for column in columns %}
                         <option value="{{ column }}">{{ column }}</option>
@@ -359,7 +368,7 @@
                 </div>
             </div>
             <div class="info-text" style="margin-top: 10px; margin-bottom: 15px;">
-                💡 <strong>Tip:</strong> Select a Legend Column to create stacked bar charts (e.g., Sales by Category, stacked by Region)
+                💡 <strong>Tip:</strong> Select a Legend Column to create stacked bar charts. For Combination charts, select a Secondary Y-Axis column (e.g., Sales as bars, Quantity as line).
             </div>
             <button onclick="generateChart()">Generate Chart</button>
         </div>
@@ -384,9 +393,23 @@
         let currentData = [];
         let currentChartConfig = null;  // Store current chart configuration
 
-        // Professional blue color palette for charts 
+        // Show/hide secondary Y-axis dropdown based on chart type
+        document.addEventListener('DOMContentLoaded', function() {
+            const chartTypeSelect = document.getElementById('chartType');
+            const secondaryYContainer = document.getElementById('secondaryYContainer');
+
+            chartTypeSelect.addEventListener('change', function() {
+                if (this.value === 'combination') {
+                    secondaryYContainer.style.display = 'block';
+                } else {
+                    secondaryYContainer.style.display = 'none';
+                }
+            });
+        });
+
+        // Professional blue color palette for charts (Moody's-inspired)
         const blueColors = [
-            'rgba(0, 40, 161, 1)',    //  primary blue
+            'rgba(0, 102, 178, 0.85)',    // Moody's primary blue
             'rgba(0, 79, 138, 0.85)',     // Darker corporate blue
             'rgba(0, 61, 106, 0.85)',     // Deep navy blue
             'rgba(51, 133, 196, 0.85)',   // Medium blue
@@ -516,6 +539,7 @@
         function updateChartColumns(columns) {
             const xColumn = document.getElementById('xColumn');
             const yColumn = document.getElementById('yColumn');
+            const yColumn2 = document.getElementById('yColumn2');
             const legendColumn = document.getElementById('legendColumn');
             const chartType = document.getElementById('chartType');
             const aggregation = document.getElementById('aggregation');
@@ -523,6 +547,7 @@
             // Save current selections
             const savedXColumn = xColumn.value;
             const savedYColumn = yColumn.value;
+            const savedYColumn2 = yColumn2.value;
             const savedLegendColumn = legendColumn.value;
             const savedChartType = chartType.value;
             const savedAggregation = aggregation.value;
@@ -530,11 +555,13 @@
             // Rebuild dropdowns
             xColumn.innerHTML = '<option value="">Select column...</option>';
             yColumn.innerHTML = '<option value="">Select column...</option>';
+            yColumn2.innerHTML = '<option value="">Select column...</option>';
             legendColumn.innerHTML = '<option value="">None - Single Series</option>';
 
             columns.forEach(col => {
                 xColumn.innerHTML += `<option value="${col}">${col}</option>`;
                 yColumn.innerHTML += `<option value="${col}">${col}</option>`;
+                yColumn2.innerHTML += `<option value="${col}">${col}</option>`;
                 legendColumn.innerHTML += `<option value="${col}">${col}</option>`;
             });
 
@@ -544,6 +571,9 @@
             }
             if (savedYColumn && columns.includes(savedYColumn)) {
                 yColumn.value = savedYColumn;
+            }
+            if (savedYColumn2 && columns.includes(savedYColumn2)) {
+                yColumn2.value = savedYColumn2;
             }
             if (savedLegendColumn && (savedLegendColumn === '' || columns.includes(savedLegendColumn))) {
                 legendColumn.value = savedLegendColumn;
@@ -705,7 +735,7 @@
         function updateChartFromGrid() {
             if (!currentChartConfig) return;
 
-            const { chartType, xColumn, yColumn, aggregation, legendColumn } = currentChartConfig;
+            const { chartType, xColumn, yColumn, yColumn2, aggregation, legendColumn } = currentChartConfig;
 
             // Get filtered data from grid
             const filteredData = getFilteredDataFromGrid();
@@ -716,6 +746,12 @@
                     currentChart.destroy();
                     currentChart = null;
                 }
+                return;
+            }
+
+            // Handle combination chart with two Y columns
+            if (chartType === 'combination' && yColumn2) {
+                renderCombinationChart(filteredData, xColumn, yColumn, yColumn2, aggregation);
                 return;
             }
 
@@ -746,6 +782,7 @@
             const chartType = document.getElementById('chartType').value;
             const xColumn = document.getElementById('xColumn').value;
             const yColumn = document.getElementById('yColumn').value;
+            const yColumn2 = document.getElementById('yColumn2').value || null;
             const aggregation = document.getElementById('aggregation').value;
             const legendColumn = document.getElementById('legendColumn').value || null;
 
@@ -754,11 +791,230 @@
                 return;
             }
 
+            // Combination chart requires a secondary Y-axis column
+            if (chartType === 'combination' && !yColumn2) {
+                alert('Combination chart requires a Secondary Y-Axis column. Please select a column for the secondary axis.');
+                return;
+            }
+
             // Save chart configuration for real-time updates
-            currentChartConfig = { chartType, xColumn, yColumn, aggregation, legendColumn };
+            currentChartConfig = { chartType, xColumn, yColumn, yColumn2, aggregation, legendColumn };
 
             // Update chart from grid data
             updateChartFromGrid();
+        }
+
+        // Render combination chart with dual Y-axis (two different Y columns)
+        function renderCombinationChart(data, xColumn, yColumn1, yColumn2, aggregation) {
+            const ctx = document.getElementById('chartCanvas').getContext('2d');
+
+            // Destroy existing chart
+            if (currentChart) {
+                currentChart.destroy();
+                currentChart = null;
+            }
+
+            // Aggregate data for both Y columns
+            const groups = {};
+            data.forEach(row => {
+                const xValue = row[xColumn];
+                const y1Value = row[yColumn1];
+                const y2Value = row[yColumn2];
+
+                if (xValue === null || xValue === undefined || xValue === '') return;
+
+                if (!groups[xValue]) {
+                    groups[xValue] = { y1: [], y2: [] };
+                }
+
+                if (y1Value !== null && y1Value !== undefined && y1Value !== '' && !isNaN(Number(y1Value))) {
+                    groups[xValue].y1.push(Number(y1Value));
+                }
+                if (y2Value !== null && y2Value !== undefined && y2Value !== '' && !isNaN(Number(y2Value))) {
+                    groups[xValue].y2.push(Number(y2Value));
+                }
+            });
+
+            const labels = Object.keys(groups);
+            const values1 = [];
+            const values2 = [];
+
+            labels.forEach(label => {
+                const y1Vals = groups[label].y1;
+                const y2Vals = groups[label].y2;
+                values1.push(performAggregation(y1Vals, aggregation));
+                values2.push(performAggregation(y2Vals, aggregation));
+            });
+
+            if (labels.length === 0) {
+                document.getElementById('chartInfo').textContent = 'No valid data for combination chart.';
+                return;
+            }
+
+            // Check if values need to be converted to millions
+            const maxValue1 = Math.max(...values1);
+            const maxValue2 = Math.max(...values2);
+            const hasMillions1 = maxValue1 >= 1000000;
+            const hasMillions2 = maxValue2 >= 1000000;
+
+            // Convert values to millions if any dataset has large numbers
+            // For comparability, both axes should use the same unit
+            const useMillions = hasMillions1 || hasMillions2;
+            let displayValues1, displayValues2;
+            let yLabel1, yLabel2;
+
+            if (useMillions) {
+                displayValues1 = values1.map(v => v / 1000000);
+                displayValues2 = values2.map(v => v / 1000000);
+                yLabel1 = `${yColumn1} ($ Millions)`;
+                yLabel2 = `${yColumn2} ($ Millions)`;
+            } else {
+                displayValues1 = values1;
+                displayValues2 = values2;
+                yLabel1 = yColumn1;
+                yLabel2 = yColumn2;
+            }
+
+            // Calculate unified axis range for comparability
+            const allValues = [...displayValues1, ...displayValues2];
+            const minValue = Math.min(...allValues);
+            const maxValue = Math.max(...allValues);
+            const range = maxValue - minValue;
+            const axisMin = Math.max(0, minValue - range * 0.1);
+            const axisMax = maxValue + range * 0.1;
+
+            // Create chart
+            currentChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: `${aggregation} of ${yColumn1}`,
+                            data: displayValues1,
+                            backgroundColor: blueColors[0],
+                            borderColor: blueColors[0].replace('0.85', '1'),
+                            borderWidth: 2,
+                            yAxisID: 'y',
+                            type: 'bar',
+                            order: 2
+                        },
+                        {
+                            label: `${aggregation} of ${yColumn2}`,
+                            data: displayValues2,
+                            backgroundColor: blueColors[1].replace('0.85', '0.3'),
+                            borderColor: blueColors[1].replace('0.85', '1'),
+                            borderWidth: 3,
+                            yAxisID: 'y2',
+                            type: 'line',
+                            fill: false,
+                            tension: 0.1,
+                            order: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        title: {
+                            display: true,
+                            text: `Combination Chart: ${aggregation} of ${yColumn1} (bars) and ${yColumn2} (line) by ${xColumn}`,
+                            font: {
+                                size: 16
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    const value = context.parsed.y;
+                                    if (useMillions) {
+                                        label += '$' + value.toFixed(2) + 'M';
+                                    } else {
+                                        label += value.toLocaleString();
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: xColumn,
+                                font: {
+                                    weight: 'bold'
+                                }
+                            }
+                        },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            beginAtZero: true,
+                            min: axisMin,
+                            max: axisMax,
+                            title: {
+                                display: true,
+                                text: yLabel1,
+                                font: {
+                                    weight: 'bold'
+                                }
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    if (useMillions) {
+                                        return '$' + value.toFixed(1) + 'M';
+                                    }
+                                    return value.toLocaleString();
+                                },
+                                count: 8  // Show more tick marks for clarity
+                            }
+                        },
+                        y2: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            beginAtZero: true,
+                            min: axisMin,
+                            max: axisMax,
+                            title: {
+                                display: true,
+                                text: yLabel2,
+                                font: {
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                drawOnChartArea: false
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    if (useMillions) {
+                                        return '$' + value.toFixed(1) + 'M';
+                                    }
+                                    return value.toLocaleString();
+                                },
+                                count: 8  // Show more tick marks for clarity
+                            }
+                        }
+                    }
+                }
+            });
+
+            const unitText = useMillions ? ' (values in $ Millions)' : '';
+            document.getElementById('chartInfo').textContent =
+                `Combination chart: ${yColumn1} (bars, left axis) and ${yColumn2} (line, right axis) by ${xColumn} (${labels.length} categories)${unitText}`;
         }
 
         // Render chart with Chart.js
@@ -770,6 +1026,11 @@
                 currentChart.destroy();
                 currentChart = null;
             }
+
+            // Check if values need to be converted to millions
+            const maxValue = Math.max(...values);
+            const useMillions = maxValue >= 1000000;
+            let displayValues = useMillions ? values.map(v => v / 1000000) : values;
 
             // Convert area to line with fill, scatter uses scatter type
             let actualChartType = chartType;
@@ -794,9 +1055,41 @@
             // For scatter, convert to {x, y} format
             let chartData;
             if (chartType === 'scatter') {
-                chartData = labels.map((label, i) => ({ x: i, y: values[i] }));
+                chartData = labels.map((label, i) => ({ x: i, y: displayValues[i] }));
             } else {
-                chartData = values;
+                chartData = displayValues;
+            }
+
+            // Build scales configuration
+            let scalesConfig = {};
+            if (chartType === 'bar' || chartType === 'line' || chartType === 'area' || chartType === 'scatter') {
+                scalesConfig = {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                if (useMillions) {
+                                    return '$' + value.toFixed(1) + 'M';
+                                }
+                                return value.toLocaleString();
+                            }
+                        }
+                    }
+                };
+            } else if (chartType === 'radar') {
+                scalesConfig = {
+                    r: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                if (useMillions) {
+                                    return '$' + value.toFixed(1) + 'M';
+                                }
+                                return value.toLocaleString();
+                            }
+                        }
+                    }
+                };
             }
 
             // Create chart
@@ -805,7 +1098,7 @@
                 data: {
                     labels: chartType === 'scatter' ? undefined : labels,
                     datasets: [{
-                        label: `${aggregation} of ${yColumn}`,
+                        label: `${aggregation} of ${yColumn}${useMillions ? ' ($ Millions)' : ''}`,
                         data: chartData,
                         backgroundColor: backgroundColor,
                         borderColor: borderColor,
@@ -824,7 +1117,7 @@
                         },
                         title: {
                             display: true,
-                            text: `${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart: ${aggregation} of ${yColumn} by ${xColumn}`,
+                            text: `${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart: ${aggregation} of ${yColumn} by ${xColumn}${useMillions ? ' ($ Millions)' : ''}`,
                             font: {
                                 size: 16
                             }
@@ -836,28 +1129,25 @@
                                     if (label) {
                                         label += ': ';
                                     }
-                                    const value = context.parsed.y || context.parsed;
-                                    label += formatLargeNumber(value);
+                                    const value = context.parsed.y !== undefined ? context.parsed.y :
+                                                  context.parsed.r !== undefined ? context.parsed.r : context.parsed;
+                                    if (useMillions) {
+                                        label += '$' + (typeof value === 'number' ? value.toFixed(2) : value) + 'M';
+                                    } else {
+                                        label += typeof value === 'number' ? value.toLocaleString() : value;
+                                    }
                                     return label;
                                 }
                             }
                         }
                     },
-                    scales: chartType === 'bar' || chartType === 'line' || chartType === 'area' || chartType === 'scatter' ? {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return formatLargeNumber(value);
-                                }
-                            }
-                        }
-                    } : {}
+                    scales: scalesConfig
                 }
             });
 
+            const unitText = useMillions ? ' (values in $ Millions)' : '';
             document.getElementById('chartInfo').textContent =
-                `Chart showing ${aggregation} of ${yColumn} by ${xColumn} (${labels.length} data points)`;
+                `Chart showing ${aggregation} of ${yColumn} by ${xColumn} (${labels.length} data points)${unitText}`;
         }
 
         // Render multi-series chart with Chart.js
@@ -868,6 +1158,24 @@
             if (currentChart) {
                 currentChart.destroy();
                 currentChart = null;
+            }
+
+            // Check if values need to be converted to millions
+            let maxValue = 0;
+            datasets.forEach(dataset => {
+                dataset.data.forEach(val => {
+                    if (val !== null && val !== undefined && val > maxValue) {
+                        maxValue = val;
+                    }
+                });
+            });
+            const useMillions = maxValue >= 1000000;
+
+            // Convert data to millions if needed
+            if (useMillions) {
+                datasets.forEach(dataset => {
+                    dataset.data = dataset.data.map(v => v !== null && v !== undefined ? v / 1000000 : v);
+                });
             }
 
             // Handle combination chart with dual Y-axis
@@ -881,6 +1189,13 @@
                 isArea = true;
             } else if (isCombination) {
                 actualChartType = 'bar';
+            }
+
+            // Combination chart requires at least 2 datasets
+            if (isCombination && datasets.length < 2) {
+                document.getElementById('chartInfo').textContent =
+                    'Combination chart requires at least 2 series. Your legend column produced only 1 series. Try a different legend column.';
+                return;
             }
 
             // Calculate fixed Y-axis ranges for combination charts
@@ -910,7 +1225,10 @@
                     max: max1 + range1 * 0.1,
                     ticks: {
                         callback: function(value) {
-                            return formatLargeNumber(value);
+                            if (useMillions) {
+                                return '$' + value.toFixed(1) + 'M';
+                            }
+                            return value.toLocaleString();
                         }
                     }
                 };
@@ -927,7 +1245,10 @@
                     },
                     ticks: {
                         callback: function(value) {
-                            return formatLargeNumber(value);
+                            if (useMillions) {
+                                return '$' + value.toFixed(1) + 'M';
+                            }
+                            return value.toLocaleString();
                         }
                     }
                 };
@@ -952,6 +1273,54 @@
                 });
             }
 
+            // Build scales configuration
+            let scalesConfig = {};
+            if (isCombination) {
+                scalesConfig = {
+                    x: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: xColumn
+                        }
+                    },
+                    y: yAxisConfig,
+                    y2: y2AxisConfig
+                };
+            } else if (chartType === 'bar' || chartType === 'line' || chartType === 'area') {
+                scalesConfig = {
+                    x: {
+                        stacked: true
+                    },
+                    y: {
+                        stacked: true,
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                if (useMillions) {
+                                    return '$' + value.toFixed(1) + 'M';
+                                }
+                                return value.toLocaleString();
+                            }
+                        }
+                    }
+                };
+            } else if (chartType === 'radar') {
+                scalesConfig = {
+                    r: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                if (useMillions) {
+                                    return '$' + value.toFixed(1) + 'M';
+                                }
+                                return value.toLocaleString();
+                            }
+                        }
+                    }
+                };
+            }
+
             // Create chart
             currentChart = new Chart(ctx, {
                 type: actualChartType,
@@ -970,8 +1339,8 @@
                         title: {
                             display: true,
                             text: isCombination ?
-                                `Combination Chart: ${aggregation} of ${yColumn} by ${xColumn} (dual Y-axis by ${legendColumn})` :
-                                `${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart: ${aggregation} of ${yColumn} by ${xColumn} (stacked by ${legendColumn})`,
+                                `Combination Chart: ${aggregation} of ${yColumn} by ${xColumn} (dual Y-axis by ${legendColumn})${useMillions ? ' ($ Millions)' : ''}` :
+                                `${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart: ${aggregation} of ${yColumn} by ${xColumn} (stacked by ${legendColumn})${useMillions ? ' ($ Millions)' : ''}`,
                             font: {
                                 size: 16
                             }
@@ -983,36 +1352,26 @@
                                     if (label) {
                                         label += ': ';
                                     }
-                                    const value = context.parsed.y;
-                                    label += formatLargeNumber(value);
+                                    const value = context.parsed.y !== undefined ? context.parsed.y :
+                                                  context.parsed.r !== undefined ? context.parsed.r : context.parsed;
+                                    if (useMillions) {
+                                        label += '$' + (typeof value === 'number' ? value.toFixed(2) : value) + 'M';
+                                    } else {
+                                        label += typeof value === 'number' ? value.toLocaleString() : value;
+                                    }
                                     return label;
                                 }
                             }
                         }
                     },
-                    scales: isCombination ? {
-                        y: yAxisConfig,
-                        y2: y2AxisConfig
-                    } : (chartType === 'bar' || chartType === 'line' || chartType === 'area' ? {
-                        x: {
-                            stacked: true
-                        },
-                        y: {
-                            stacked: true,
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return formatLargeNumber(value);
-                                }
-                            }
-                        }
-                    } : {})
+                    scales: scalesConfig
                 }
             });
 
+            const unitText = useMillions ? ' (values in $ Millions)' : '';
             document.getElementById('chartInfo').textContent = isCombination ?
-                `Combination chart with dual Y-axis showing ${aggregation} of ${yColumn} by ${xColumn}, split by ${legendColumn} (${labels.length} categories, ${datasets.length} series)` :
-                `Stacked chart showing ${aggregation} of ${yColumn} by ${xColumn}, broken down by ${legendColumn} (${labels.length} categories, ${datasets.length} series)`;
+                `Combination chart with dual Y-axis showing ${aggregation} of ${yColumn} by ${xColumn}, split by ${legendColumn} (${labels.length} categories, ${datasets.length} series)${unitText}` :
+                `Stacked chart showing ${aggregation} of ${yColumn} by ${xColumn}, broken down by ${legendColumn} (${labels.length} categories, ${datasets.length} series)${unitText}`;
         }
 
         // Date Range Slider Functions
