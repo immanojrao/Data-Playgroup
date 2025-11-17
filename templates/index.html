@@ -184,6 +184,7 @@
 
         #chartCanvas {
             max-height: 500px;
+            border: 1px solid #ddd;
         }
 
         .info-text {
@@ -1117,6 +1118,9 @@
                                 font: {
                                     weight: 'bold'
                                 }
+                            },
+                            grid: {
+                                display: false
                             }
                         },
                         y: {
@@ -1132,6 +1136,9 @@
                                 font: {
                                     weight: 'bold'
                                 }
+                            },
+                            grid: {
+                                display: false
                             },
                             ticks: {
                                 callback: function(value) {
@@ -1158,7 +1165,7 @@
                                 }
                             },
                             grid: {
-                                drawOnChartArea: false
+                                display: false
                             },
                             ticks: {
                                 callback: function(value) {
@@ -1235,8 +1242,16 @@
             let scalesConfig = {};
             if (chartType === 'bar' || chartType === 'line' || chartType === 'area' || chartType === 'scatter') {
                 scalesConfig = {
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    },
                     y: {
                         beginAtZero: true,
+                        grid: {
+                            display: false
+                        },
                         ticks: {
                             callback: function(value) {
                                 if (useMillions) {
@@ -1251,6 +1266,9 @@
                 scalesConfig = {
                     r: {
                         beginAtZero: true,
+                        grid: {
+                            display: false
+                        },
                         ticks: {
                             callback: function(value) {
                                 if (useMillions) {
@@ -1396,6 +1414,9 @@
                     beginAtZero: true,
                     min: Math.max(0, min1 - range1 * 0.1),
                     max: max1 + range1 * 0.1,
+                    grid: {
+                        display: false
+                    },
                     ticks: {
                         callback: function(value) {
                             if (useMillions) {
@@ -1414,7 +1435,7 @@
                     min: Math.max(0, min2 - range2 * 0.1),
                     max: max2 + range2 * 0.1,
                     grid: {
-                        drawOnChartArea: false
+                        display: false
                     },
                     ticks: {
                         callback: function(value) {
@@ -1455,6 +1476,9 @@
                         title: {
                             display: true,
                             text: xColumn
+                        },
+                        grid: {
+                            display: false
                         }
                     },
                     y: yAxisConfig,
@@ -1463,11 +1487,17 @@
             } else if (chartType === 'bar' || chartType === 'line' || chartType === 'area') {
                 scalesConfig = {
                     x: {
-                        stacked: true
+                        stacked: true,
+                        grid: {
+                            display: false
+                        }
                     },
                     y: {
                         stacked: true,
                         beginAtZero: true,
+                        grid: {
+                            display: false
+                        },
                         ticks: {
                             callback: function(value) {
                                 if (useMillions) {
@@ -1482,6 +1512,9 @@
                 scalesConfig = {
                     r: {
                         beginAtZero: true,
+                        grid: {
+                            display: false
+                        },
                         ticks: {
                             callback: function(value) {
                                 if (useMillions) {
