@@ -1742,15 +1742,14 @@
         // Tile selection handlers
         function initializeTileHandlers() {
             document.querySelectorAll('#columnSelector .column-tile').forEach(tile => {
-                tile.addEventListener('click', function(e) {
-                    if (e.target.tagName === 'INPUT') return; // Let checkbox handle itself
-                    const checkbox = this.querySelector('input[type="checkbox"]');
-                    checkbox.checked = !checkbox.checked;
-                    this.classList.toggle('selected', checkbox.checked);
+                const checkbox = tile.querySelector('input[type="checkbox"]');
+
+                // Listen to checkbox change events to sync visual state
+                checkbox.addEventListener('change', function() {
+                    tile.classList.toggle('selected', this.checked);
                 });
 
                 // Sync initial state
-                const checkbox = tile.querySelector('input[type="checkbox"]');
                 tile.classList.toggle('selected', checkbox.checked);
             });
         }
@@ -1763,14 +1762,14 @@
         }
 
         function selectAllColumns() {
-            document.querySelectorAll('#columnSelector input').forEach(cb => {
+            document.querySelectorAll('#columnSelector input[type="checkbox"]').forEach(cb => {
                 cb.checked = true;
             });
             updateTileStates();
         }
 
         function deselectAllColumns() {
-            document.querySelectorAll('#columnSelector input').forEach(cb => {
+            document.querySelectorAll('#columnSelector input[type="checkbox"]').forEach(cb => {
                 cb.checked = false;
             });
             updateTileStates();
