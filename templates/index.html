@@ -859,9 +859,11 @@
             if (!currentChartConfig) return;
 
             const { chartType, xColumn, yColumn, yColumn2, aggregation, legendColumn } = currentChartConfig;
+            console.log('updateChartFromGrid called with:', { chartType, xColumn, yColumn, yColumn2, aggregation, legendColumn });
 
             // Get filtered data from grid
             const filteredData = getFilteredDataFromGrid();
+            console.log('Filtered data length:', filteredData.length);
 
             if (filteredData.length === 0) {
                 document.getElementById('chartInfo').textContent = 'No data to display. Adjust your filters.';
@@ -873,7 +875,9 @@
             }
 
             // Handle combination chart with two Y columns
+            console.log('Checking if combination chart:', chartType === 'combination', 'yColumn2:', yColumn2);
             if (chartType === 'combination' && yColumn2) {
+                console.log('Calling renderCombinationChart...');
                 renderCombinationChart(filteredData, xColumn, yColumn, yColumn2, aggregation);
                 return;
             }
@@ -909,6 +913,8 @@
             const aggregation = document.getElementById('aggregation').value;
             const legendColumn = document.getElementById('legendColumn').value || null;
 
+            console.log('Generate Chart called:', { chartType, xColumn, yColumn, yColumn2, aggregation, legendColumn });
+
             if (!xColumn || !yColumn) {
                 alert('Please select both X and Y columns');
                 return;
@@ -922,6 +928,7 @@
 
             // Save chart configuration for real-time updates
             currentChartConfig = { chartType, xColumn, yColumn, yColumn2, aggregation, legendColumn };
+            console.log('Chart config saved:', currentChartConfig);
 
             // Update chart from grid data
             updateChartFromGrid();
