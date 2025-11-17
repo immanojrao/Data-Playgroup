@@ -929,6 +929,7 @@
 
         // Render combination chart with dual Y-axis (two different Y columns)
         function renderCombinationChart(data, xColumn, yColumn1, yColumn2, aggregation) {
+            console.log('Rendering combination chart:', { xColumn, yColumn1, yColumn2, aggregation, dataLength: data.length });
             const ctx = document.getElementById('chartCanvas').getContext('2d');
 
             // Destroy existing chart
@@ -974,6 +975,8 @@
                 return;
             }
 
+            console.log('Combination chart data:', { labels, values1, values2 });
+
             // Check if values need to be converted to millions
             const maxValue1 = Math.max(...values1);
             const maxValue2 = Math.max(...values2);
@@ -1007,6 +1010,7 @@
             const axisMax = maxValue + range * 0.1;
 
             // Create chart
+            try {
             currentChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
@@ -1044,16 +1048,11 @@
                             display: true,
                             position: 'top',
                             labels: {
-                                generateLabels: function(chart) {
-                                    return chart.data.datasets.map((dataset, i) => ({
-                                        text: dataset.label,
-                                        fillStyle: dataset.backgroundColor,
-                                        strokeStyle: dataset.borderColor,
-                                        lineWidth: dataset.borderWidth,
-                                        hidden: chart.getDatasetMeta(i).hidden,
-                                        index: i,
-                                        datasetIndex: i
-                                    }));
+                                usePointStyle: false,
+                                boxWidth: 40,
+                                padding: 20,
+                                font: {
+                                    size: 12
                                 }
                             },
                             onClick: function(e, legendItem, legend) {
@@ -1155,6 +1154,14 @@
                     }
                 }
             });
+
+            console.log('Combination chart created successfully. Chart object:', currentChart);
+            console.log('Legend config:', currentChart.options.plugins.legend);
+            } catch (error) {
+                console.error('Error creating combination chart:', error);
+                document.getElementById('chartInfo').textContent = 'Error creating chart: ' + error.message;
+                return;
+            }
 
             const unitText = useMillions ? ' (values in $ Millions)' : '';
             const zoomText = labels.length > 15 ? ' - Use mouse wheel to zoom, drag to pan' : '';
