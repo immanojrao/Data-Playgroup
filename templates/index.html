@@ -1043,6 +1043,19 @@
                         legend: {
                             display: true,
                             position: 'top',
+                            labels: {
+                                generateLabels: function(chart) {
+                                    return chart.data.datasets.map((dataset, i) => ({
+                                        text: dataset.label,
+                                        fillStyle: dataset.backgroundColor,
+                                        strokeStyle: dataset.borderColor,
+                                        lineWidth: dataset.borderWidth,
+                                        hidden: chart.getDatasetMeta(i).hidden,
+                                        index: i,
+                                        datasetIndex: i
+                                    }));
+                                }
+                            },
                             onClick: function(e, legendItem, legend) {
                                 const index = legendItem.datasetIndex;
                                 const ci = legend.chart;
