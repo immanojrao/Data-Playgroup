@@ -56,26 +56,47 @@
             color: #34495e;
         }
 
-        .checkbox-group {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        .tile-group {
+            display: flex;
+            flex-wrap: wrap;
             gap: 10px;
             padding: 10px;
             background: #f8f9fa;
             border-radius: 4px;
         }
 
-        .checkbox-group label {
-            display: flex;
-            align-items: center;
-            font-weight: normal;
+        .column-tile {
+            display: inline-block;
+            padding: 8px 16px;
+            background: white;
+            border: 2px solid #d1d8e0;
+            border-radius: 6px;
             cursor: pointer;
-            padding: 5px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            user-select: none;
         }
 
-        .checkbox-group input[type="checkbox"] {
-            margin-right: 8px;
-            cursor: pointer;
+        .column-tile:hover {
+            border-color: #0066b2;
+            background: #f0f7ff;
+        }
+
+        .column-tile.selected {
+            background: linear-gradient(135deg, #0066b2 0%, #004f8a 100%);
+            color: white;
+            border-color: #004f8a;
+            font-weight: 600;
+        }
+
+        .column-tile input[type="checkbox"] {
+            display: none;
+        }
+
+        .slicer-box {
+            flex: 1;
+            min-width: 200px;
+            max-width: 300px;
         }
 
         .date-filter {
@@ -248,15 +269,41 @@
         <div class="controls">
             <div class="control-group">
                 <div class="section-title">Select Columns to Display</div>
-                <div class="checkbox-group" id="columnSelector">
+                <div style="margin-bottom: 10px;">
+                    <button onclick="selectAllColumns()" style="padding: 6px 12px; font-size: 12px; margin-right: 5px;">Select All</button>
+                    <button onclick="deselectAllColumns()" style="padding: 6px 12px; font-size: 12px; background: linear-gradient(135deg, #95a5a6, #7f8c8d);">Deselect All</button>
+                </div>
+                <div class="tile-group" id="columnSelector">
                     {% for column in columns %}
-                    <label>
+                    <label class="column-tile selected">
                         <input type="checkbox" value="{{ column }}" checked>
                         {{ column }}
                     </label>
                     {% endfor %}
                 </div>
                 <button onclick="loadData()" style="margin-top: 15px;">Load Data</button>
+            </div>
+        </div>
+
+        <!-- Data Slicers -->
+        <div class="controls">
+            <div class="control-group">
+                <div class="section-title">Data Slicers (Filter by Column Values)</div>
+                <div style="margin-bottom: 10px;">
+                    <label style="font-weight: 600; color: #34495e;">Add Slicer Column (max 3):</label>
+                    <select id="slicerColumnSelect" style="padding: 6px 10px; border: 1px solid #0066b2; border-radius: 4px; margin-left: 10px;">
+                        <option value="">Select column...</option>
+                        {% for column in columns %}
+                        <option value="{{ column }}">{{ column }}</option>
+                        {% endfor %}
+                    </select>
+                    <button onclick="addSlicer()" style="padding: 6px 12px; font-size: 12px; margin-left: 5px;">Add Slicer</button>
+                    <button onclick="clearAllSlicers()" style="padding: 6px 12px; font-size: 12px; margin-left: 5px; background: linear-gradient(135deg, #95a5a6, #7f8c8d);">Clear All</button>
+                </div>
+                <div id="slicerContainer" style="display: flex; flex-wrap: wrap; gap: 15px;"></div>
+                <div class="info-text" style="margin-top: 10px;">
+                    💡 <strong>Tip:</strong> Slicers filter both the grid and charts. Select multiple values from each slicer to narrow down your data.
+                </div>
             </div>
         </div>
 
@@ -812,9 +859,11 @@
             if (!currentChartConfig) return;
 
             const { chartType, xColumn, yColumn, yColumn2, aggregation, legendColumn } = currentChartConfig;
+            console.log('updateChartFromGrid called with:', { chartType, xColumn, yColumn, yColumn2, aggregation, legendColumn });
 
             // Get filtered data from grid
             const filteredData = getFilteredDataFromGrid();
+            console.log('Filtered data length:', filteredData.length);
 
             if (filteredData.length === 0) {
                 document.getElementById('chartInfo').textContent = 'No data to display. Adjust your filters.';
@@ -826,7 +875,9 @@
             }
 
             // Handle combination chart with two Y columns
+            console.log('Checking if combination chart:', chartType === 'combination', 'yColumn2:', yColumn2);
             if (chartType === 'combination' && yColumn2) {
+                console.log('Calling renderCombinationChart...');
                 renderCombinationChart(filteredData, xColumn, yColumn, yColumn2, aggregation);
                 return;
             }
@@ -862,6 +913,8 @@
             const aggregation = document.getElementById('aggregation').value;
             const legendColumn = document.getElementById('legendColumn').value || null;
 
+            console.log('Generate Chart called:', { chartType, xColumn, yColumn, yColumn2, aggregation, legendColumn });
+
             if (!xColumn || !yColumn) {
                 alert('Please select both X and Y columns');
                 return;
@@ -875,6 +928,7 @@
 
             // Save chart configuration for real-time updates
             currentChartConfig = { chartType, xColumn, yColumn, yColumn2, aggregation, legendColumn };
+            console.log('Chart config saved:', currentChartConfig);
 
             // Update chart from grid data
             updateChartFromGrid();
@@ -882,6 +936,7 @@
 
         // Render combination chart with dual Y-axis (two different Y columns)
         function renderCombinationChart(data, xColumn, yColumn1, yColumn2, aggregation) {
+            console.log('Rendering combination chart:', { xColumn, yColumn1, yColumn2, aggregation, dataLength: data.length });
             const ctx = document.getElementById('chartCanvas').getContext('2d');
 
             // Destroy existing chart
@@ -927,6 +982,8 @@
                 return;
             }
 
+            console.log('Combination chart data:', { labels, values1, values2 });
+
             // Check if values need to be converted to millions
             const maxValue1 = Math.max(...values1);
             const maxValue2 = Math.max(...values2);
@@ -960,6 +1017,7 @@
             const axisMax = maxValue + range * 0.1;
 
             // Create chart
+            try {
             currentChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
@@ -995,7 +1053,26 @@
                     plugins: {
                         legend: {
                             display: true,
-                            position: 'top'
+                            position: 'top',
+                            align: 'center',
+                            labels: {
+                                usePointStyle: false,
+                                boxWidth: 40,
+                                boxHeight: 20,
+                                padding: 20,
+                                color: '#333',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            },
+                            onClick: function(e, legendItem, legend) {
+                                const index = legendItem.datasetIndex;
+                                const ci = legend.chart;
+                                const meta = ci.getDatasetMeta(index);
+                                meta.hidden = meta.hidden === null ? !ci.data.datasets[index].hidden : null;
+                                ci.update();
+                            }
                         },
                         title: {
                             display: true,
@@ -1088,6 +1165,14 @@
                     }
                 }
             });
+
+            console.log('Combination chart created successfully. Chart object:', currentChart);
+            console.log('Legend config:', currentChart.options.plugins.legend);
+            } catch (error) {
+                console.error('Error creating combination chart:', error);
+                document.getElementById('chartInfo').textContent = 'Error creating chart: ' + error.message;
+                return;
+            }
 
             const unitText = useMillions ? ' (values in $ Millions)' : '';
             const zoomText = labels.length > 15 ? ' - Use mouse wheel to zoom, drag to pan' : '';
@@ -1590,6 +1675,7 @@
                     document.querySelectorAll('#columnSelector input').forEach(cb => {
                         cb.checked = data.selected_columns.includes(cb.value);
                     });
+                    updateTileStates();
 
                     // Restore date filter
                     if (data.start_date) {
@@ -1619,6 +1705,8 @@
 
         // Initialize on page load
         window.addEventListener('load', async () => {
+            // Initialize tile click handlers
+            initializeTileHandlers();
 
             try {
                 await loadSession();
@@ -1631,6 +1719,7 @@
                         document.querySelectorAll('#columnSelector input').forEach(cb => {
                             cb.checked = true;
                         });
+                        updateTileStates();
                     }
                     await loadData();
                 }
@@ -1640,6 +1729,7 @@
                 document.querySelectorAll('#columnSelector input').forEach(cb => {
                     cb.checked = true;
                 });
+                updateTileStates();
                 try {
                     await loadData();
                 } catch (loadError) {
@@ -1648,6 +1738,191 @@
                 }
             }
         });
+
+        // Tile selection handlers
+        function initializeTileHandlers() {
+            document.querySelectorAll('#columnSelector .column-tile').forEach(tile => {
+                tile.addEventListener('click', function(e) {
+                    if (e.target.tagName === 'INPUT') return; // Let checkbox handle itself
+                    const checkbox = this.querySelector('input[type="checkbox"]');
+                    checkbox.checked = !checkbox.checked;
+                    this.classList.toggle('selected', checkbox.checked);
+                });
+
+                // Sync initial state
+                const checkbox = tile.querySelector('input[type="checkbox"]');
+                tile.classList.toggle('selected', checkbox.checked);
+            });
+        }
+
+        function updateTileStates() {
+            document.querySelectorAll('#columnSelector .column-tile').forEach(tile => {
+                const checkbox = tile.querySelector('input[type="checkbox"]');
+                tile.classList.toggle('selected', checkbox.checked);
+            });
+        }
+
+        function selectAllColumns() {
+            document.querySelectorAll('#columnSelector input').forEach(cb => {
+                cb.checked = true;
+            });
+            updateTileStates();
+        }
+
+        function deselectAllColumns() {
+            document.querySelectorAll('#columnSelector input').forEach(cb => {
+                cb.checked = false;
+            });
+            updateTileStates();
+        }
+
+        // Slicer functionality
+        let activeSlicers = {}; // { columnName: [selectedValues] }
+
+        function addSlicer() {
+            const slicerSelect = document.getElementById('slicerColumnSelect');
+            const columnName = slicerSelect.value;
+
+            if (!columnName) {
+                alert('Please select a column for the slicer');
+                return;
+            }
+
+            // Check if already added
+            if (activeSlicers.hasOwnProperty(columnName)) {
+                alert('This column is already added as a slicer');
+                return;
+            }
+
+            // Max 3 slicers
+            if (Object.keys(activeSlicers).length >= 3) {
+                alert('Maximum 3 slicers allowed. Please remove one first.');
+                return;
+            }
+
+            // Get unique values from the current data
+            const uniqueValues = [...new Set(currentData.map(row => row[columnName]))]
+                .filter(v => v !== null && v !== undefined && v !== '')
+                .sort();
+
+            if (uniqueValues.length === 0) {
+                alert('No values found for this column');
+                return;
+            }
+
+            // Initialize slicer with all values selected
+            activeSlicers[columnName] = [...uniqueValues];
+
+            // Create slicer UI
+            const slicerContainer = document.getElementById('slicerContainer');
+            const slicerBox = document.createElement('div');
+            slicerBox.className = 'slicer-box';
+            slicerBox.id = `slicer-${columnName.replace(/\s+/g, '-')}`;
+            slicerBox.style.cssText = 'background: #f8f9fa; padding: 15px; border-radius: 6px; border: 2px solid #d1d8e0;';
+
+            let optionsHtml = uniqueValues.map(val =>
+                `<label style="display: block; margin: 5px 0; cursor: pointer;">
+                    <input type="checkbox" value="${val}" checked onchange="updateSlicerSelection('${columnName}', this)">
+                    ${val}
+                </label>`
+            ).join('');
+
+            slicerBox.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <strong style="color: #003d6a;">${columnName}</strong>
+                    <button onclick="removeSlicer('${columnName}')" style="padding: 2px 8px; font-size: 11px; background: linear-gradient(135deg, #e74c3c, #c0392b);">✕</button>
+                </div>
+                <div style="max-height: 150px; overflow-y: auto; border: 1px solid #ddd; background: white; padding: 5px; border-radius: 4px;">
+                    ${optionsHtml}
+                </div>
+                <div style="margin-top: 8px;">
+                    <button onclick="selectAllSlicerValues('${columnName}')" style="padding: 3px 8px; font-size: 10px; margin-right: 3px;">All</button>
+                    <button onclick="deselectAllSlicerValues('${columnName}')" style="padding: 3px 8px; font-size: 10px; background: linear-gradient(135deg, #95a5a6, #7f8c8d);">None</button>
+                </div>
+            `;
+
+            slicerContainer.appendChild(slicerBox);
+
+            // Reset the dropdown
+            slicerSelect.value = '';
+
+            // Apply slicer filter immediately
+            applySlicerFilters();
+        }
+
+        function removeSlicer(columnName) {
+            delete activeSlicers[columnName];
+            const slicerBox = document.getElementById(`slicer-${columnName.replace(/\s+/g, '-')}`);
+            if (slicerBox) {
+                slicerBox.remove();
+            }
+            applySlicerFilters();
+        }
+
+        function clearAllSlicers() {
+            activeSlicers = {};
+            document.getElementById('slicerContainer').innerHTML = '';
+            applySlicerFilters();
+        }
+
+        function updateSlicerSelection(columnName, checkbox) {
+            const value = checkbox.value;
+            if (checkbox.checked) {
+                if (!activeSlicers[columnName].includes(value)) {
+                    activeSlicers[columnName].push(value);
+                }
+            } else {
+                activeSlicers[columnName] = activeSlicers[columnName].filter(v => v != value);
+            }
+            applySlicerFilters();
+        }
+
+        function selectAllSlicerValues(columnName) {
+            const slicerBox = document.getElementById(`slicer-${columnName.replace(/\s+/g, '-')}`);
+            const checkboxes = slicerBox.querySelectorAll('input[type="checkbox"]');
+            activeSlicers[columnName] = [];
+            checkboxes.forEach(cb => {
+                cb.checked = true;
+                activeSlicers[columnName].push(cb.value);
+            });
+            applySlicerFilters();
+        }
+
+        function deselectAllSlicerValues(columnName) {
+            const slicerBox = document.getElementById(`slicer-${columnName.replace(/\s+/g, '-')}`);
+            const checkboxes = slicerBox.querySelectorAll('input[type="checkbox"]');
+            checkboxes.forEach(cb => {
+                cb.checked = false;
+            });
+            activeSlicers[columnName] = [];
+            applySlicerFilters();
+        }
+
+        function applySlicerFilters() {
+            // Filter data based on active slicers
+            let filteredData = [...currentData];
+
+            for (const [column, selectedValues] of Object.entries(activeSlicers)) {
+                if (selectedValues.length > 0) {
+                    filteredData = filteredData.filter(row => {
+                        const cellValue = row[column];
+                        return selectedValues.some(v => v == cellValue);
+                    });
+                } else {
+                    // If no values selected for a slicer, show no data
+                    filteredData = [];
+                    break;
+                }
+            }
+
+            // Update the grid with filtered data
+            gridApi.setGridOption('rowData', filteredData);
+
+            // Update chart if one exists
+            if (currentChartConfig) {
+                updateChartFromGrid();
+            }
+        }
     </script>
 </body>
 </html>
