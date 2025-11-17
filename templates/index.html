@@ -184,6 +184,7 @@
 
         #chartCanvas {
             max-height: 500px;
+            border: 1px solid #ddd;
         }
 
         .info-text {
@@ -456,12 +457,20 @@
         document.addEventListener('DOMContentLoaded', function() {
             const chartTypeSelect = document.getElementById('chartType');
             const secondaryYContainer = document.getElementById('secondaryYContainer');
+            const legendColumnSelect = document.getElementById('legendColumn');
 
             chartTypeSelect.addEventListener('change', function() {
                 if (this.value === 'combination') {
                     secondaryYContainer.style.display = 'block';
+                    // Disable legend column for combination charts (not supported with dual Y-axis)
+                    legendColumnSelect.disabled = true;
+                    legendColumnSelect.value = '';
+                    legendColumnSelect.title = 'Legend column is not supported for combination charts with dual Y-axis';
                 } else {
                     secondaryYContainer.style.display = 'none';
+                    // Re-enable legend column for other chart types
+                    legendColumnSelect.disabled = false;
+                    legendColumnSelect.title = '';
                 }
             });
         });
@@ -1109,6 +1118,9 @@
                                 font: {
                                     weight: 'bold'
                                 }
+                            },
+                            grid: {
+                                display: false
                             }
                         },
                         y: {
@@ -1124,6 +1136,9 @@
                                 font: {
                                     weight: 'bold'
                                 }
+                            },
+                            grid: {
+                                display: false
                             },
                             ticks: {
                                 callback: function(value) {
@@ -1150,7 +1165,7 @@
                                 }
                             },
                             grid: {
-                                drawOnChartArea: false
+                                display: false
                             },
                             ticks: {
                                 callback: function(value) {
@@ -1227,8 +1242,16 @@
             let scalesConfig = {};
             if (chartType === 'bar' || chartType === 'line' || chartType === 'area' || chartType === 'scatter') {
                 scalesConfig = {
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    },
                     y: {
                         beginAtZero: true,
+                        grid: {
+                            display: false
+                        },
                         ticks: {
                             callback: function(value) {
                                 if (useMillions) {
@@ -1243,6 +1266,9 @@
                 scalesConfig = {
                     r: {
                         beginAtZero: true,
+                        grid: {
+                            display: false
+                        },
                         ticks: {
                             callback: function(value) {
                                 if (useMillions) {
@@ -1388,6 +1414,9 @@
                     beginAtZero: true,
                     min: Math.max(0, min1 - range1 * 0.1),
                     max: max1 + range1 * 0.1,
+                    grid: {
+                        display: false
+                    },
                     ticks: {
                         callback: function(value) {
                             if (useMillions) {
@@ -1406,7 +1435,7 @@
                     min: Math.max(0, min2 - range2 * 0.1),
                     max: max2 + range2 * 0.1,
                     grid: {
-                        drawOnChartArea: false
+                        display: false
                     },
                     ticks: {
                         callback: function(value) {
@@ -1447,6 +1476,9 @@
                         title: {
                             display: true,
                             text: xColumn
+                        },
+                        grid: {
+                            display: false
                         }
                     },
                     y: yAxisConfig,
@@ -1455,11 +1487,17 @@
             } else if (chartType === 'bar' || chartType === 'line' || chartType === 'area') {
                 scalesConfig = {
                     x: {
-                        stacked: true
+                        stacked: true,
+                        grid: {
+                            display: false
+                        }
                     },
                     y: {
                         stacked: true,
                         beginAtZero: true,
+                        grid: {
+                            display: false
+                        },
                         ticks: {
                             callback: function(value) {
                                 if (useMillions) {
@@ -1474,6 +1512,9 @@
                 scalesConfig = {
                     r: {
                         beginAtZero: true,
+                        grid: {
+                            display: false
+                        },
                         ticks: {
                             callback: function(value) {
                                 if (useMillions) {
@@ -1742,15 +1783,14 @@
         // Tile selection handlers
         function initializeTileHandlers() {
             document.querySelectorAll('#columnSelector .column-tile').forEach(tile => {
-                tile.addEventListener('click', function(e) {
-                    if (e.target.tagName === 'INPUT') return; // Let checkbox handle itself
-                    const checkbox = this.querySelector('input[type="checkbox"]');
-                    checkbox.checked = !checkbox.checked;
-                    this.classList.toggle('selected', checkbox.checked);
+                const checkbox = tile.querySelector('input[type="checkbox"]');
+
+                // Listen to checkbox change events to sync visual state
+                checkbox.addEventListener('change', function() {
+                    tile.classList.toggle('selected', this.checked);
                 });
 
                 // Sync initial state
-                const checkbox = tile.querySelector('input[type="checkbox"]');
                 tile.classList.toggle('selected', checkbox.checked);
             });
         }
@@ -1763,14 +1803,14 @@
         }
 
         function selectAllColumns() {
-            document.querySelectorAll('#columnSelector input').forEach(cb => {
+            document.querySelectorAll('#columnSelector input[type="checkbox"]').forEach(cb => {
                 cb.checked = true;
             });
             updateTileStates();
         }
 
         function deselectAllColumns() {
-            document.querySelectorAll('#columnSelector input').forEach(cb => {
+            document.querySelectorAll('#columnSelector input[type="checkbox"]').forEach(cb => {
                 cb.checked = false;
             });
             updateTileStates();
