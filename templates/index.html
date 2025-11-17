@@ -456,12 +456,20 @@
         document.addEventListener('DOMContentLoaded', function() {
             const chartTypeSelect = document.getElementById('chartType');
             const secondaryYContainer = document.getElementById('secondaryYContainer');
+            const legendColumnSelect = document.getElementById('legendColumn');
 
             chartTypeSelect.addEventListener('change', function() {
                 if (this.value === 'combination') {
                     secondaryYContainer.style.display = 'block';
+                    // Disable legend column for combination charts (not supported with dual Y-axis)
+                    legendColumnSelect.disabled = true;
+                    legendColumnSelect.value = '';
+                    legendColumnSelect.title = 'Legend column is not supported for combination charts with dual Y-axis';
                 } else {
                     secondaryYContainer.style.display = 'none';
+                    // Re-enable legend column for other chart types
+                    legendColumnSelect.disabled = false;
+                    legendColumnSelect.title = '';
                 }
             });
         });
