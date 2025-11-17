@@ -636,8 +636,11 @@
                     // Update chart column dropdowns (preserves selections)
                     updateChartColumns(result.columns);
 
-                    // Update chart if one was already generated
-                    if (currentChartConfig) {
+                    // Reapply slicer filters if any are active
+                    if (Object.keys(activeSlicers).length > 0) {
+                        applySlicerFilters();
+                    } else if (currentChartConfig) {
+                        // Update chart if one was already generated (only if no slicers, as applySlicerFilters handles chart update)
                         updateChartFromGrid();
                     }
                 } else {
